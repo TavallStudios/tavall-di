@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DependencyInjectorHelperIntegrationTest {
+class DependencyInjectorHelperTest {
     private static final String FIXTURE_PACKAGE = "com.tjxjnoobie.api.dependency.injection.helpers.fixtures";
     private static final String MULTI_FIXTURE_PACKAGE = "com.tjxjnoobie.api.dependency.injection.helpers.multiplefixtures";
 

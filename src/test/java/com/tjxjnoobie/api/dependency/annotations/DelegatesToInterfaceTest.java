@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DelegatesToInterfaceIntegrationTest {
+class DelegatesToInterfaceTest {
     private static final String ARRAY_ONLY_FIXTURE_PACKAGE = "com.tjxjnoobie.api.dependency.annotations.fixtures.arrayonly";
     private static final String MIXED_DECLARATION_FIXTURE_PACKAGE = "com.tjxjnoobie.api.dependency.annotations.fixtures.mixed";
 

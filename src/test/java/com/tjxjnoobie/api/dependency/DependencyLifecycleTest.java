@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DependencyLifecycleIntegrationTest {
+class DependencyLifecycleTest {
     private static final String LIFECYCLE_FIXTURE_PACKAGE =
             "com.tjxjnoobie.api.dependency.injection.helpers.lifecyclefixtures";
 
