@@ -1,13 +1,10 @@
 package com.tjxjnoobie.api.interfaces;
 
-import com.tjxjnoobie.api.dependency.annotations.ComposesToInterface;
-import com.tjxjnoobie.api.dependency.composition.domains.IInfrastructureDomain;
 import com.tjxjnoobie.api.machine.data.interfaces.ILocalServerMetaData;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@ComposesToInterface(IInfrastructureDomain.class)
 public interface IUtils extends ILocalServerMetaData, com.tjxjnoobie.api.dependency.IDependencyInjectableInterface {
 
     default String getServerID() {

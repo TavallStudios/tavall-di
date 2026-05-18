@@ -2,7 +2,6 @@ package com.tjxjnoobie.api.dependency.injection.helpers;
 
 import com.tjxjnoobie.api.dependency.DependencyLoaderAccess;
 import com.tjxjnoobie.api.dependency.injection.helpers.fixtures.DelegatingRedisService;
-import com.tjxjnoobie.api.dependency.injection.helpers.fixtures.DelegatingVelocityMainService;
 import com.tjxjnoobie.api.dependency.injection.helpers.multiplefixtures.DelegatingMultiInterfaceService;
 import com.tjxjnoobie.api.dependency.maps.DependencyMap;
 import com.tjxjnoobie.api.dependency.metadata.DependencyMetaData;
@@ -12,7 +11,6 @@ import com.tjxjnoobie.api.dependency.metadata.wrappers.DependencyInterface;
 import com.tjxjnoobie.api.interfaces.IRedis;
 import com.tjxjnoobie.api.interfaces.IUtils;
 import com.tjxjnoobie.api.machine.data.interfaces.ILocalServerMetaData;
-import com.tjxjnoobie.api.platform.velocity.startup.interfaces.IVelocityMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +27,6 @@ class SetupAndRunDITest {
     void resetState() {
         DependencyMap.getDependencyMap().clear();
         DelegatingRedisService.reset();
-        DelegatingVelocityMainService.reset();
         DelegatingMultiInterfaceService.reset();
         RealProjectMultiInterfaceService.reset();
     }
@@ -48,19 +45,15 @@ class SetupAndRunDITest {
 
         IRedis redis = DependencyLoaderAccess.findInstance(IRedis.class);
         IUtils utils = DependencyLoaderAccess.findInstance(IUtils.class);
-        IVelocityMain velocityMain = DependencyLoaderAccess.findInstance(IVelocityMain.class);
 
         assertNotNull(redis);
         assertNotNull(utils);
-        assertNotNull(velocityMain);
 
         redis.connectToRedis();
         utils.createServerID();
-        velocityMain.onProxyInitialization(null);
 
         assertEquals(1, DelegatingRedisService.getConnectCalls());
         assertEquals("server-generated", utils.getServerID());
-        assertEquals(1, DelegatingVelocityMainService.getInitializationCalls());
 
         DependencyMap.getDependencyMap().clear();
 

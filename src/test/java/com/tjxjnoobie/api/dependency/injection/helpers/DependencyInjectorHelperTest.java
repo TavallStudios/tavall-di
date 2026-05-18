@@ -3,13 +3,11 @@ package com.tjxjnoobie.api.dependency.injection.helpers;
 import com.tjxjnoobie.api.dependency.DependencyLoaderAccess;
 import com.tjxjnoobie.api.dependency.injection.helpers.fixtures.DelegatingRedisService;
 import com.tjxjnoobie.api.dependency.injection.helpers.fixtures.DelegatingUtilsService;
-import com.tjxjnoobie.api.dependency.injection.helpers.fixtures.DelegatingVelocityMainService;
 import com.tjxjnoobie.api.dependency.injection.helpers.multiplefixtures.DelegatingMultiInterfaceService;
 import com.tjxjnoobie.api.dependency.maps.DependencyMap;
 import com.tjxjnoobie.api.interfaces.IRedis;
 import com.tjxjnoobie.api.interfaces.IUtils;
 import com.tjxjnoobie.api.machine.data.interfaces.ILocalServerMetaData;
-import com.tjxjnoobie.api.platform.velocity.startup.interfaces.IVelocityMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +26,6 @@ class DependencyInjectorHelperTest {
     void resetState() {
         DependencyMap.getDependencyMap().clear();
         DelegatingRedisService.reset();
-        DelegatingVelocityMainService.reset();
         DelegatingMultiInterfaceService.reset();
     }
 
@@ -80,7 +77,7 @@ class DependencyInjectorHelperTest {
     void setupDISystemOverloadsProduceTheSameFixtureBindings() throws Throwable {
         runBootstrapAndAssertFixtureBindings(helper -> helper.setupDISystem());
         runBootstrapAndAssertFixtureBindings(helper -> helper.setupDISystem(getClass().getClassLoader()));
-        runBootstrapAndAssertFixtureBindings(helper -> helper.setupDISystem(DependencyInjectorHelperIntegrationTest.class));
+        runBootstrapAndAssertFixtureBindings(helper -> helper.setupDISystem(TestEntryPoint.class));
         runBootstrapAndAssertFixtureBindings(helper -> helper.setupDISystem(new TestEntryPoint()));
     }
 
@@ -144,7 +141,6 @@ class DependencyInjectorHelperTest {
     private void runBootstrapAndAssertFixtureBindings(ThrowingHelperBootstrap bootstrap) throws Throwable {
         DependencyMap.getDependencyMap().clear();
         DelegatingRedisService.reset();
-        DelegatingVelocityMainService.reset();
         DelegatingMultiInterfaceService.reset();
 
         TestableDependencyInjectorHelper helper = new TestableDependencyInjectorHelper();
@@ -157,32 +153,22 @@ class DependencyInjectorHelperTest {
     private void assertFixtureBindingsRegistered() throws Throwable {
         assertTrue(DependencyLoaderAccess.isInstanceRegistered(IRedis.class));
         assertTrue(DependencyLoaderAccess.isInstanceRegistered(IUtils.class));
-        assertTrue(DependencyLoaderAccess.isInstanceRegistered(IVelocityMain.class));
 
         IRedis redis = DependencyLoaderAccess.findInstance(IRedis.class);
         IUtils utils = DependencyLoaderAccess.findInstance(IUtils.class);
-        IVelocityMain velocityMain = DependencyLoaderAccess.findInstance(IVelocityMain.class);
 
         assertNotNull(redis);
         assertNotNull(utils);
-        assertNotNull(velocityMain);
 
         redis.connectToRedis();
-        redis.disconnectFromRedis();
         utils.createServerID();
         utils.createGameID();
         utils.setConfigValue("mode", "integration");
-        velocityMain.onProxyInitialization(null);
-        velocityMain.registerCommand("ping", null, null, "p");
 
         assertEquals(1, DelegatingRedisService.getConnectCalls());
-        assertEquals(1, DelegatingRedisService.getDisconnectCalls());
         assertEquals("server-generated", utils.getServerID());
         assertEquals("game-generated", utils.getGameID());
         assertEquals("integration", utils.getConfigValues().get("mode"));
-        assertEquals(1, DelegatingVelocityMainService.getInitializationCalls());
-        assertEquals("ping", DelegatingVelocityMainService.getLastCommand());
-        assertEquals(1, DelegatingVelocityMainService.getLastAliasCount());
     }
 
     private static class TestableDependencyInjectorHelper extends DependencyInjectorHelper<

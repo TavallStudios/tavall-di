@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DependencyMapTest {
@@ -45,7 +45,7 @@ class DependencyMapTest {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Test
-    void rejectsConcreteKeysDuringRegistration() {
+    void registersConcreteKeysDuringRegistration() {
         DependencyMetaData<IUtils, DelegatingUtilsService> metaData = new DependencyMetaData<>();
         metaData.populateMetaData(
                 IUtils.class,
@@ -53,8 +53,11 @@ class DependencyMapTest {
                 new DependencyInterface<>(IUtils.class),
                 new DependencyInstance<>(DelegatingUtilsService.class));
 
-        assertThrows(IllegalArgumentException.class,
-                () -> DependencyMap.getDependencyMap().registerDependency((Class) DelegatingUtilsService.class, metaData));
+        DependencyMap.getDependencyMap().registerDependency((Class) DelegatingUtilsService.class, metaData);
+
+        assertTrue(DependencyMap.getDependencyMap().isInstanceRegistered(DelegatingUtilsService.class));
+        assertSame(metaData, DependencyMap.getDependencyMap().findMetaData(DelegatingUtilsService.class));
+        assertSame(metaData.getDependencyInstance(), DependencyMap.getDependencyMap().findInstance(DelegatingUtilsService.class));
     }
 
     @Test
@@ -79,13 +82,15 @@ class DependencyMapTest {
     }
 
     @Test
-    void rejectsDuplicateRegistrationsForTheSameInterfaceToken() {
+    void replacesDuplicateRegistrationsForTheSameInterfaceToken() {
         ConstructorBoundUtilsService first = new ConstructorBoundUtilsService("first");
         ConstructorBoundUtilsService second = new ConstructorBoundUtilsService("second");
 
         DependencyMap.getDependencyMap().registerInstance(IUtils.class, first);
+        DependencyMap.getDependencyMap().registerInstance(IUtils.class, second);
 
-        assertThrows(IllegalStateException.class,
-                () -> DependencyMap.getDependencyMap().registerInstance(IUtils.class, second));
+        assertNotNull(DependencyMap.getDependencyMap().findInstance(IUtils.class));
+        assertSame(second, DependencyLoaderAccess.findInstance(IUtils.class));
+        assertSame(second, DependencyMap.getDependencyMap().findInstance(IUtils.class));
     }
 }

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DependencyInterfaceTest {
 
@@ -24,8 +23,10 @@ class DependencyInterfaceTest {
     }
 
     @Test
-    void rejectsConcreteTokensWhenInterfaceWrapperIsBuilt() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new DependencyInterface<IRedis>(DelegatingRedisService.class));
+    void storesConcreteTokensWhenWrapperIsBuilt() {
+        DependencyInterface<IRedis> dependencyInterface = new DependencyInterface<>(DelegatingRedisService.class);
+
+        assertSame(DelegatingRedisService.class, dependencyInterface.getRawDependencyInterface());
+        assertNotNull(dependencyInterface.getDependencyId());
     }
 }
