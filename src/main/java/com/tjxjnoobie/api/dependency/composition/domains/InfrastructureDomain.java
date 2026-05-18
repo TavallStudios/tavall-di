@@ -5,5 +5,5 @@ import com.tjxjnoobie.api.dependency.IDependencyInjectableInterface;
 /**
  * Domain bridge for infrastructure dependencies.
  */
-public interface IInfrastructureDomain extends IDependencyInjectableInterface {
+public interface InfrastructureDomain extends IDependencyInjectableInterface {
 }
