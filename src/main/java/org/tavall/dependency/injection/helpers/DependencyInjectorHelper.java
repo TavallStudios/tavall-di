@@ -12,7 +12,9 @@ package org.tavall.dependency.injection.helpers;
 import org.tavall.dependency.DependencyLoaderAccess;
 import org.tavall.dependency.IDependencyInjectableConcrete;
 import org.tavall.dependency.IDependencyInjectableInterface;
+import org.tavall.dependency.annotations.ClassOptions;
 import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.metadata.DependencySource;
 import org.tavall.dependency.injection.helpers.interfaces.IDependencyInjectorHelper;
 import org.tavall.dependency.maps.DependencyMap;
 import org.tavall.dependency.metadata.DependencyMetaData;
@@ -23,8 +25,8 @@ import org.tavall.dependency.metadata.wrappers.DependencyInstance;
 import org.tavall.dependency.metadata.wrappers.DependencyInterface;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInstance;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInterface;
-import com.tjxjnoobie.api.platform.global.console.Log;
-import com.tjxjnoobie.api.platform.global.console.style.LogColor;
+import org.tavall.logging.Log;
+import org.tavall.logging.style.LogColor;
 
 import java.io.File;
 import java.io.InputStream;
@@ -139,6 +141,7 @@ public class DependencyInjectorHelper<
         Log.info("[DI] --- Phase 2: Annotation Scanning & Map Registration ");
         registerDependenciesViaAnnotation();
         REGISTERED_BINDINGS.put(bootstrapKey, registeredInterfaceKeys());
+        flushPendingCacheRegistryMetaData(resolvedLoader);
 
         if (reload) {
             Log.warn("[DI] ===== DI System Reload Ended =====");
@@ -263,6 +266,7 @@ public class DependencyInjectorHelper<
             IDependencyInstance<INSTANCE> wrappedLinkedConcrete = new DependencyInstance<>(rawScannedConcrete);
             IDependencyMetaData<INTERFACE, INSTANCE> dependencyMetaData = new DependencyMetaData<>();
             dependencyMetaDataHelper.populateMetaData(dependencyMetaData, wrappedLinkedInterface, wrappedLinkedConcrete);
+            dependencyMetaData.setSources(resolveDependencySources(rawScannedConcrete));
             registeredMetaData.add(dependencyMetaData);
 
             for (Class<? extends INTERFACE> linkedInterface : validInterfaces) {
@@ -330,11 +334,45 @@ public class DependencyInjectorHelper<
         return linkedInterfaces;
     }
 
+    private Set<DependencySource> resolveDependencySources(Class<?> rawScannedConcrete) {
+        Set<DependencySource> sources = new LinkedHashSet<>();
+        ClassOptions classOptions = rawScannedConcrete.getAnnotation(ClassOptions.class);
+        if (classOptions != null) {
+            sources.addAll(Arrays.asList(classOptions.sources()));
+        }
+        if (sources.isEmpty()) {
+            sources.add(DependencySource.SCANNED);
+        }
+        return sources;
+    }
+
     private void addLinkedInterface(Set<Class<?>> linkedInterfaces, Class<?> linkedInterface) {
         if (linkedInterface == null || linkedInterface == Void.class) {
             return;
         }
         linkedInterfaces.add(linkedInterface);
+    }
+
+    private void flushPendingCacheRegistryMetaData(ClassLoader resolvedLoader) {
+        try {
+            Class<?> cacheStatsRegistryClass = Class.forName(
+                    "org.tavall.abstractcache.semantic.stats.CacheStatsRegistry",
+                    true,
+                    resolvedLoader
+            );
+
+            Object cacheStatsRegistry = cacheStatsRegistryClass
+                    .getMethod("getInstance")
+                    .invoke(null);
+
+            cacheStatsRegistryClass
+                    .getMethod("flushPendingCacheRegistryMetaData")
+                    .invoke(cacheStatsRegistry);
+        } catch (ClassNotFoundException ignored) {
+            // Cache module is optional for DI bootstrap.
+        } catch (ReflectiveOperationException exception) {
+            Log.exception(exception);
+        }
     }
 
     /**
