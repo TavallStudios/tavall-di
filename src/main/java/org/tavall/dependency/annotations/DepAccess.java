@@ -13,5 +13,5 @@ package org.tavall.dependency.annotations;
  * Marker access interface that is lowered from the authoring form.
  */
 @VariableTypeArguments
-public interface DepAccess {
+public interface DepAccess<DependencyOneValue, DependencyTwoValue, DependencyThreeValue, DependencyFourValue> {
 }
