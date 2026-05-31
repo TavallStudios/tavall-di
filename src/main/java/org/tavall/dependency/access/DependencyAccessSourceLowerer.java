@@ -22,7 +22,7 @@ import java.util.Set;
 public final class DependencyAccessSourceLowerer {
     private static final String GRANT_ANNOTATION = "@GrantDependencyAccess";
     private static final String VARIABLE_TYPE_ARGUMENTS_ANNOTATION = "@VariableTypeArguments";
-    private static final String DEP_ACCESS_NAME = "DepAccess";
+    private static final String DEP_ACCESS_NAME = "DependencyAccess";
 
     /**
      * Lowers a source set by expanding granted dependency metadata and stripping implemented type arguments.

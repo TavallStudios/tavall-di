@@ -9,7 +9,7 @@
 
 package org.tavall.dependency.access;
 
-import org.tavall.dependency.annotations.DepAccess;
+import org.tavall.dependency.DependencyAccess;
 import org.tavall.dependency.annotations.GrantDependencyAccess;
 import org.tavall.dependency.annotations.GrantedDependencyAccess;
 import org.tavall.dependency.internal.DependencyTypeResult;
@@ -55,17 +55,17 @@ public final class DependencyAccessGrantHandler {
 
         if (dependencyType.isAnnotationPresent(GrantDependencyAccess.class)) {
             DependencyTypeResult dependencyTypeResult =
-                    DependencyTypeResolver.resolveTypeParameters(dependencyType, DepAccess.class);
+                    DependencyTypeResolver.resolveTypeParameters(dependencyType, DependencyAccess.class);
             Class<?>[] dependencyTypes = dependencyTypeResult.getTypeArguments();
             if (dependencyTypes.length > 0) {
                 DependencyAccessValidationHandler validationHandler = new DependencyAccessValidationHandler();
-                validationHandler.validateGrant(DepAccess.class, dependencyTypes);
+                validationHandler.validateGrant(DependencyAccess.class, dependencyTypes);
 
                 List<Class<?>> dependencyTypeList = new ArrayList<>(dependencyTypes.length);
                 for (Class<?> dependencyClass : dependencyTypes) {
                     dependencyTypeList.add(dependencyClass);
                 }
-                descriptors.add(new DependencyAccessGrantDescriptor(DepAccess.class, dependencyTypeList));
+                descriptors.add(new DependencyAccessGrantDescriptor(DependencyAccess.class, dependencyTypeList));
             }
         }
         return descriptors;

@@ -1,13 +1,13 @@
 package org.tavall.dependency.access.fixtures;
 
-import org.tavall.dependency.annotations.DepAccess;
+import org.tavall.dependency.DependencyAccess;
 import org.tavall.dependency.annotations.DelegatesToInterface;
 import org.tavall.dependency.annotations.GrantDependencyAccess;
 import org.tavall.dependency.annotations.GrantedDependencyAccess;
 import org.tavall.dependency.annotations.VariableTypeArguments;
 
 @VariableTypeArguments
-interface PlayerAccess<FirstDependency, SecondDependency, ThirdDependency, FourthDependency, FifthDependency> extends DepAccess {
+interface PlayerAccess<FirstDependency, SecondDependency, ThirdDependency, FourthDependency, FifthDependency> extends DependencyAccess {
 }
 
 interface IPlayerRegistry {

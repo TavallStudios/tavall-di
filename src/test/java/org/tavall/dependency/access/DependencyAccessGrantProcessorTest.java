@@ -68,10 +68,10 @@ class DependencyAccessGrantProcessorTest {
                 package org.example;
 
                 import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.annotations.DepAccess;
+                import org.tavall.dependency.DependencyAccess;
 
                 @VariableTypeArguments
-                public interface PlayerAccess extends DepAccess {
+                public interface PlayerAccess extends DependencyAccess {
                 }
                 """);
         sources.put("org.example.IPlayerRegistry", """
@@ -113,30 +113,30 @@ class DependencyAccessGrantProcessorTest {
                 package org.example;
 
                 import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.annotations.DepAccess;
+                import org.tavall.dependency.DependencyAccess;
 
                 @VariableTypeArguments
-                public interface PlayerAccess extends DepAccess {
+                public interface PlayerAccess extends DependencyAccess {
                 }
                 """);
         sources.put("org.example.EconomyAccess", """
                 package org.example;
 
                 import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.annotations.DepAccess;
+                import org.tavall.dependency.DependencyAccess;
 
                 @VariableTypeArguments
-                public interface EconomyAccess extends DepAccess {
+                public interface EconomyAccess extends DependencyAccess {
                 }
                 """);
         sources.put("org.example.MessageAccess", """
                 package org.example;
 
                 import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.annotations.DepAccess;
+                import org.tavall.dependency.DependencyAccess;
 
                 @VariableTypeArguments
-                public interface MessageAccess extends DepAccess {
+                public interface MessageAccess extends DependencyAccess {
                 }
                 """);
         sources.put("org.example.IPlayerRegistry", """
