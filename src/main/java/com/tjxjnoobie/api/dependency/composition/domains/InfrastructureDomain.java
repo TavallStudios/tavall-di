@@ -1,6 +1,6 @@
 package com.tjxjnoobie.api.dependency.composition.domains;
 
-import com.tjxjnoobie.api.dependency.IDependencyInjectableInterface;
+import org.tavall.dependency.IDependencyInjectableInterface;
 
 /**
  * Domain bridge for infrastructure dependencies.

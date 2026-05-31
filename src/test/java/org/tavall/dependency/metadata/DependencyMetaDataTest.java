@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DependencyMetaDataTest {
@@ -53,5 +54,16 @@ class DependencyMetaDataTest {
 
         assertNull(metaData.findInstance(IRank.class));
         assertThrows(IllegalStateException.class, () -> metaData.requireInstance(IRank.class));
+    }
+
+    @Test
+    void defaultMetadataStateRemainsIsolatedAndEmpty() {
+        DependencyMetaData<IUtils, DelegatingUtilsService> metaData = new DependencyMetaData<>();
+
+        assertTrue(metaData.getSubDependencies().isEmpty());
+        assertEquals(0, metaData.getDepth());
+        assertEquals(DependencyRole.ISOLATED, metaData.getDependencyRole());
+        assertEquals(0, metaData.getPriority());
+        assertEquals(0, metaData.getRetryCount());
     }
 }

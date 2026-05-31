@@ -22,6 +22,13 @@ import java.lang.annotation.Target;
 public @interface DelegatesToInterface {
 
     /**
+     * Primary interface token that should map to the annotated concrete.
+     *
+     * @return the primary interface token, or {@link Void} when unset
+     */
+    Class<?> value() default Void.class;
+
+    /**
      * Returns the primary interface token that should map to the annotated concrete.
      *
      * @return the primary interface token, or {@link Void} when unset

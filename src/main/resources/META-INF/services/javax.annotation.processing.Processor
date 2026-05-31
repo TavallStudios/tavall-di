@@ -1,1 +1,1 @@
-com.tjxjnoobie.tools.composition.processor.ComposesToInterfaceProcessor
+org.tavall.dependency.processor.DependencyAccessGrantProcessor
