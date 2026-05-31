@@ -24,8 +24,8 @@ import org.tavall.dependency.metadata.wrappers.DependencyInstance;
 import org.tavall.dependency.metadata.wrappers.DependencyInterface;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInstance;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInterface;
-import com.tjxjnoobie.api.platform.global.console.Log;
-import com.tjxjnoobie.api.platform.global.console.style.LogColor;
+import org.tavall.logging.Log;
+import org.tavall.logging.style.LogColor;
 
 import java.io.File;
 import java.io.InputStream;

@@ -13,7 +13,7 @@ import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaDataHelper;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInstance;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInterface;
-import com.tjxjnoobie.api.platform.global.console.Log;
+import org.tavall.logging.Log;
 
 /**
  * Default helper that transfers interface and instance wrapper state into metadata.

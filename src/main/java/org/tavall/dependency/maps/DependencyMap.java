@@ -14,7 +14,7 @@ import org.tavall.dependency.metadata.DependencyMetaData;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
 import org.tavall.dependency.metadata.wrappers.DependencyInstance;
 import org.tavall.dependency.metadata.wrappers.DependencyInterface;
-import com.tjxjnoobie.api.platform.global.console.Log;
+import org.tavall.logging.Log;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
