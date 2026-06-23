@@ -29,4 +29,8 @@ public interface IDependencyBundleAccess<BUNDLE extends IDependencyBundle> {
     default BUNDLE getDependencies() {
         return DependencyBundleFactory.getDependencyBundleFactory().createDependencies(getDependencyBundleTypeParam());
     }
+
+    default BUNDLE dependencies() {
+        return getDependencies();
+    }
 }

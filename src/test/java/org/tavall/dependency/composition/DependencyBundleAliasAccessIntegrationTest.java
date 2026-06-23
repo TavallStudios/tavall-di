@@ -26,7 +26,7 @@ class DependencyBundleAliasAccessIntegrationTest {
     }
 
     @Test
-    void aliasMethodsDelegateThroughDependenciesBundle() {
+    void dependenciesMiniContextSuppliesBundleAccess() {
         TestPlayerData playerData = new TestPlayerData();
         TestEconomyService economyService = new TestEconomyService();
         TestAuditLogger auditLogger = new TestAuditLogger();
@@ -39,9 +39,9 @@ class DependencyBundleAliasAccessIntegrationTest {
         TestPlayerRewardAliasService service = (TestPlayerRewardAliasService) access;
 
         assertEquals(TestPlayerRewardDependencies.class, access.getDependencyBundleTypeParam());
-        assertSame(playerData, service.playerData());
-        assertSame(economyService, service.economyService());
-        assertSame(auditLogger, service.auditLogger());
+        assertSame(playerData, service.dependencies().playerData());
+        assertSame(economyService, service.dependencies().economyService());
+        assertSame(auditLogger, service.dependencies().auditLogger());
 
         service.rewardPlayer(250L);
 
