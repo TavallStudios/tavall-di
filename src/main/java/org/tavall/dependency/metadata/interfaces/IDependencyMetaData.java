@@ -1,5 +1,5 @@
 /*
- * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
+ * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
@@ -13,7 +13,7 @@ import org.tavall.dependency.IDependencyAccess;
 import org.tavall.dependency.injection.enums.LifecycleType;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInstance;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInterface;
-import com.tjxjnoobie.api.interfaces.IContext;
+import org.tavall.interfaces.IContext;
 import org.tavall.dependency.metadata.DependencyRole;
 
 import java.lang.reflect.Method;

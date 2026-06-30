@@ -1,5 +1,5 @@
 /* 
- * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
+ * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
