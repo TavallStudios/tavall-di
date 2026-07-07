@@ -4,7 +4,7 @@
 [![Org](https://img.shields.io/badge/org-TavallStudios-181717?logo=github)](https://github.com/TavallStudios) [![Stack](https://img.shields.io/badge/stack-Maven-0A7BBB)](https://api.github.com/repos/TavallStudios/tavall-di) ![History](https://img.shields.io/badge/history-preserved-6f42c1)
 <!-- tavall:badges:end -->
 
-This repository contains the $path project extracted from the Tavall monorepo with its commit history preserved.
+This repository contains Tavall DI, a standalone Maven dependency injection library extracted from the Tavall monorepo with its project history preserved.
 
 ## Development
 
