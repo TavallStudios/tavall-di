@@ -6,7 +6,9 @@ plugins {
 }
 
 group = "org.tavall"
-version = "1.0.0"
+extra["versionTagPrefix"] = "tavall-di"
+apply(from = "gradle/git-version.gradle.kts")
+version = extra["gitVersion"] as String
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
