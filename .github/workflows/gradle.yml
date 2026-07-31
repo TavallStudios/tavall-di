@@ -14,11 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
+      - name: Apply DelegatesTo migration
+        run: python .github/scripts/migrate_delegates_to.py
       - name: Install Tavall build dependencies
         run: |
           git clone --depth 1 https://github.com/TavallStudios/tavall-logging.git "$RUNNER_TEMP/tavall-logging"
@@ -32,4 +36,25 @@ jobs:
           "$RUNNER_TEMP/tavall-logging/gradlew" -p "$RUNNER_TEMP/tavall-logging" \
             --no-daemon --max-workers=1 -I "$RUNNER_TEMP/tavall-version.init.gradle" \
             -x test publishToMavenLocal
-      - run: ./gradlew --no-daemon clean check publishToMavenLocal
+      - name: Validate migrated source
+        run: |
+          git diff --check
+          ./gradlew --no-daemon --max-workers=1 clean check publishToMavenLocal
+      - name: Collect migration output
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p migration-output/files
+          while IFS= read -r -d '' path; do
+            mkdir -p "migration-output/files/$(dirname "$path")"
+            cp "$path" "migration-output/files/$path"
+          done < <(git ls-files --modified --others --exclude-standard -z)
+          git diff --binary > migration-output/migration.patch
+          git status --short > migration-output/status.txt
+      - name: Upload migration output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delegates-to-migration-output
+          path: migration-output
+          if-no-files-found: error
