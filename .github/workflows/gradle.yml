@@ -22,7 +22,7 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
       - name: Apply DelegatesTo migration
-        run: python .github/scripts/migrate_delegates_to.py
+        run: python .github/scripts/migrate-delegates_to.py
       - name: Install Tavall build dependencies
         run: |
           git clone --depth 1 https://github.com/TavallStudios/tavall-logging.git "$RUNNER_TEMP/tavall-logging"
