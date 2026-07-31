@@ -12,7 +12,7 @@ The system already has the real core pieces:
 - `IDependencyInstance<INSTANCE>`
 - `DependencyLoaderAccess`
 - scoped and default dependency loaders
-- `@DelegatesToInterface`
+- `@DelegatesTo`
 - `DependencySource`
 - `IContext<INTERFACE>`
 - class-token based dependency lookup
@@ -173,7 +173,7 @@ public record PlayerRewardDependencies(
 ```
 
 ```java
-@DelegatesToInterface(IPlayerRewardHandler.class)
+@DelegatesTo(IPlayerRewardHandler.class)
 public final class PlayerRewardHandler
         implements IPlayerRewardHandler, IDependencyBundleAccess<PlayerRewardDependencies> {
 
@@ -238,7 +238,7 @@ This is the preferred handler implementation style when the class has multiple m
 ## Shape
 
 ```java
-@DelegatesToInterface(IPlayerRewardHandler.class)
+@DelegatesTo(IPlayerRewardHandler.class)
 public final class PlayerRewardHandler
         implements IPlayerRewardHandler, IDependencyBundleAccess<PlayerRewardDependencies> {
 
@@ -292,7 +292,7 @@ No dependency fields. No local dependency variables. No facade methods. No strin
 - You want method bodies to read cleanly.
 - You want the bundle as the formal dependency contract.
 - You do not want cached dependency fields.
-- You want `@DelegatesToInterface` to make the handler itself DI-managed.
+- You want `@DelegatesTo` to make the handler itself DI-managed.
 
 ## Avoid When
 
@@ -621,7 +621,7 @@ This gives access to the interface wrapper, not just the raw interface instance.
 - testing wrapper correctness
 - building diagnostic tools
 - checking interface-side metadata
-- validating `@DelegatesToInterface` behavior
+- validating `@DelegatesTo` behavior
 
 ## Avoid When
 
@@ -789,7 +789,7 @@ Test that:
 
 ---
 
-# `@DelegatesToInterface` Ranking
+# `@DelegatesTo` Ranking
 
 ## Production Rank
 
@@ -800,7 +800,7 @@ This annotation should be treated as the deterministic binding declaration.
 ## Shape
 
 ```java
-@DelegatesToInterface(IPlayerData.class)
+@DelegatesTo(IPlayerData.class)
 public final class PlayerData implements IPlayerData {
 }
 ```
@@ -808,7 +808,7 @@ public final class PlayerData implements IPlayerData {
 Multi-interface:
 
 ```java
-@DelegatesToInterface({
+@DelegatesTo({
         IPlayerData.class,
         IPlayerWallet.class
 })
@@ -855,7 +855,7 @@ Test that:
 Use bundle + getters.
 
 ```java
-@DelegatesToInterface(IPlayerRewardHandler.class)
+@DelegatesTo(IPlayerRewardHandler.class)
 public final class PlayerRewardHandler
         implements IPlayerRewardHandler, IDependencyBundleAccess<PlayerRewardDependencies> {
 

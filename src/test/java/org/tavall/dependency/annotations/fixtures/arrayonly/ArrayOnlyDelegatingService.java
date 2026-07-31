@@ -1,6 +1,6 @@
 package org.tavall.dependency.annotations.fixtures.arrayonly;
 
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.fixtures.contracts.interfaces.IRedis;
 import org.tavall.dependency.fixtures.contracts.interfaces.IUtils;
 import org.tavall.dependency.fixtures.contracts.machine.data.interfaces.ILocalServerMetaData;
@@ -9,7 +9,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@DelegatesToInterface(getLinkedInterfaces = {IRedis.class, IUtils.class, ILocalServerMetaData.class})
+@DelegatesTo({
+        IRedis.class,
+        IUtils.class,
+        ILocalServerMetaData.class
+})
 public class ArrayOnlyDelegatingService implements IRedis, IUtils, org.tavall.dependency.IDependencyInjectableConcrete {
     private static final AtomicInteger CONNECT_CALLS = new AtomicInteger();
 

@@ -1,5 +1,5 @@
 /*
- * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
+ * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
@@ -16,7 +16,10 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates that a concrete class should be registered as the delegate for one or more supplied interface types.
+ *
+ * @deprecated Use {@link DelegatesTo}. This compatibility annotation remains supported while downstream modules migrate.
  */
+@Deprecated(forRemoval = false)
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DelegatesToInterface {

@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DelegatesToInterfaceTest {
+class DelegatesToTest {
     private static final String ARRAY_ONLY_FIXTURE_PACKAGE = "org.tavall.dependency.annotations.fixtures.arrayonly";
     private static final String MIXED_DECLARATION_FIXTURE_PACKAGE = "org.tavall.dependency.annotations.fixtures.mixed";
 
@@ -37,7 +37,7 @@ class DelegatesToInterfaceTest {
     }
 
     @Test
-    void arrayOnlyAnnotationRegistersInterfacesInDeclaredOrder() {
+    void arrayAnnotationRegistersDependencyTokensInDeclaredOrder() {
         TestableDependencyInjectorHelper helper = new TestableDependencyInjectorHelper();
 
         helper.scanPackage(ARRAY_ONLY_FIXTURE_PACKAGE, getClass().getClassLoader());
@@ -68,7 +68,7 @@ class DelegatesToInterfaceTest {
     }
 
     @Test
-    void mixedAnnotationDeduplicatesAndSkipsInterfacesTheConcreteDoesNotImplement() {
+    void mixedAnnotationDeduplicatesAndSkipsUnassignableDependencyTokens() {
         TestableDependencyInjectorHelper helper = new TestableDependencyInjectorHelper();
 
         helper.scanPackage(MIXED_DECLARATION_FIXTURE_PACKAGE, getClass().getClassLoader());

@@ -6,7 +6,7 @@ import org.tavall.dependency.DependencyLoader;
 import org.tavall.dependency.DependencyLoaderAccess;
 import org.tavall.dependency.access.fixtures.ISomeClass;
 import org.tavall.dependency.access.fixtures.SomeClass;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 
 import java.util.List;
 
@@ -31,9 +31,9 @@ class DependencyAccessProductionIntegrationTest {
         SomeClass<String> productionClass = new SomeClass<>();
         Class<?> productionType = productionClass.getClass();
 
-        DelegatesToInterface delegatesToInterface = productionType.getAnnotation(DelegatesToInterface.class);
-        assertNotNull(delegatesToInterface);
-        assertSame(ISomeClass.class, delegatesToInterface.value());
+        DelegatesTo delegatesTo = productionType.getAnnotation(DelegatesTo.class);
+        assertNotNull(delegatesTo);
+        assertSame(ISomeClass.class, delegatesTo.value()[0]);
 
         ISomeClass resolvedInstance = productionClass.lookupDelegatedInterface();
         assertSame(delegatedInstance, resolvedInstance);
