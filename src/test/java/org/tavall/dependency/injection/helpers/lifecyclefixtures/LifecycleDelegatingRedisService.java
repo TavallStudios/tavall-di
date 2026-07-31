@@ -1,13 +1,13 @@
 package org.tavall.dependency.injection.helpers.lifecyclefixtures;
 
 import org.tavall.dependency.IDependencyInjectableConcrete;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.fixtures.contracts.interfaces.IRedis;
 import org.tavall.dependency.fixtures.contracts.interfaces.IUtils;
 import org.tavall.dependency.annotations.Inject;
 import org.tavall.dependency.annotations.PostConstruct;
 
-@DelegatesToInterface(getLinkedInterface = IRedis.class)
+@DelegatesTo(IRedis.class)
 public class LifecycleDelegatingRedisService implements IRedis, IDependencyInjectableConcrete {
     private static boolean postConstructCalled;
 

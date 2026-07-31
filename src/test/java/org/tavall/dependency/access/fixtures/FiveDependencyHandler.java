@@ -1,7 +1,7 @@
 package org.tavall.dependency.access.fixtures;
 
 import org.tavall.dependency.DependencyAccess;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.annotations.GrantDependencyAccess;
 import org.tavall.dependency.annotations.GrantedDependencyAccess;
 import org.tavall.dependency.annotations.VariableTypeArguments;
@@ -39,7 +39,7 @@ interface IRewardHandler {
                 IMessageFormatter.class
         }
 )
-@DelegatesToInterface(value = IRewardHandler.class)
+@DelegatesTo(IRewardHandler.class)
 public final class FiveDependencyHandler<HandlerValue>
         implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository, IWalletRegistry, ITransactionRepository, IMessageFormatter> {
 }

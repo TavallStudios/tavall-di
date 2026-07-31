@@ -1,11 +1,11 @@
 package org.tavall.dependency.injection.helpers.fixtures;
 
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.fixtures.contracts.interfaces.IRedis;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@DelegatesToInterface(getLinkedInterface = IRedis.class)
+@DelegatesTo({IRedis.class, DelegatingRedisService.class})
 public class DelegatingRedisService implements IRedis, org.tavall.dependency.IDependencyInjectableConcrete {
     private static final AtomicInteger CONNECT_CALLS = new AtomicInteger();
     private static final AtomicInteger DISCONNECT_CALLS = new AtomicInteger();

@@ -2,7 +2,7 @@ package org.tavall.dependency.access;
 
 import org.junit.jupiter.api.Test;
 import org.tavall.dependency.access.fixtures.FiveDependencyHandler;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 
 import java.util.List;
 
@@ -16,10 +16,10 @@ class DependencyAccessFiveDependencyIntegrationTest {
         FiveDependencyHandler<String> handler = new FiveDependencyHandler<>();
         Class<?> handlerType = handler.getClass();
 
-        DelegatesToInterface delegatesToInterface = handlerType.getAnnotation(DelegatesToInterface.class);
-        assertNotNull(delegatesToInterface);
+        DelegatesTo delegatesTo = handlerType.getAnnotation(DelegatesTo.class);
+        assertNotNull(delegatesTo);
         assertEquals("org.tavall.dependency.access.fixtures.IRewardHandler",
-                delegatesToInterface.value().getName());
+                delegatesTo.value()[0].getName());
 
         DependencyAccessGrantHandler grantHandler = new DependencyAccessGrantHandler();
         List<DependencyAccessGrantDescriptor> descriptors = grantHandler.findGrantedDependencyAccesses(handlerType);

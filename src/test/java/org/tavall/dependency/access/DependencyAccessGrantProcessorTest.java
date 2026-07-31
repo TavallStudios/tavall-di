@@ -1,6 +1,6 @@
 package org.tavall.dependency.access;
 
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -39,10 +39,10 @@ class DependencyAccessGrantProcessorTest {
         Path outputDirectory = DependencyAccessTestCompiler.compileSources(loweredSources);
 
         Class<?> handlerClass = DependencyAccessTestCompiler.loadClass(outputDirectory, "org.example.MultiAccessHandler");
-        DelegatesToInterface delegatesToInterface = handlerClass.getAnnotation(DelegatesToInterface.class);
+        DelegatesTo delegatesTo = handlerClass.getAnnotation(DelegatesTo.class);
 
-        assertNotNull(delegatesToInterface);
-        assertEquals("org.example.IRewardHandler", delegatesToInterface.value().getName());
+        assertNotNull(delegatesTo);
+        assertEquals("org.example.IRewardHandler", delegatesTo.value()[0].getName());
 
         DependencyAccessGrantHandler grantHandler = new DependencyAccessGrantHandler();
         List<DependencyAccessGrantDescriptor> descriptors = grantHandler.findGrantedDependencyAccesses(handlerClass);
@@ -95,11 +95,11 @@ class DependencyAccessGrantProcessorTest {
         sources.put("org.example.SingleAccessHandler", """
                 package org.example;
 
-                import org.tavall.dependency.annotations.DelegatesToInterface;
+                import org.tavall.dependency.annotations.DelegatesTo;
                 import org.tavall.dependency.annotations.GrantDependencyAccess;
 
                 @GrantDependencyAccess
-                @DelegatesToInterface(value = IRewardHandler.class)
+                @DelegatesTo(IRewardHandler.class)
                 public final class SingleAccessHandler<RewardValue>
                         implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository> {
                 }
@@ -184,11 +184,11 @@ class DependencyAccessGrantProcessorTest {
         sources.put("org.example.MultiAccessHandler", """
                 package org.example;
 
-                import org.tavall.dependency.annotations.DelegatesToInterface;
+                import org.tavall.dependency.annotations.DelegatesTo;
                 import org.tavall.dependency.annotations.GrantDependencyAccess;
 
                 @GrantDependencyAccess
-                @DelegatesToInterface(value = IRewardHandler.class)
+                @DelegatesTo(IRewardHandler.class)
                 public final class MultiAccessHandler<RewardValue>
                         implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository>,
                         EconomyAccess<IWalletRegistry, ITransactionRepository>,

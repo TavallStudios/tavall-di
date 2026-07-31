@@ -1,11 +1,11 @@
 package org.tavall.dependency.access.fixtures;
 
 import org.tavall.dependency.DependencyAccess;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.annotations.GrantDependencyAccess;
 
 @GrantDependencyAccess
-@DelegatesToInterface(value = ISomeClass.class)
+@DelegatesTo(ISomeClass.class)
 public final class SomeClass<SomeOtherTypeParameterValue>
         implements DependencyAccess<
                 DependencyOneValue,

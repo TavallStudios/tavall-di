@@ -25,7 +25,7 @@ class DependencyAccessSourceLowererTest {
         assertTrue(loweredHandlerSource.contains("dependencyTypes = {"));
         assertTrue(loweredHandlerSource.contains("IPlayerRegistry.class"));
         assertTrue(loweredHandlerSource.contains("IPlayerDataRepository.class"));
-        assertTrue(loweredHandlerSource.contains("@DelegatesToInterface(value = IRewardHandler.class)"));
+        assertTrue(loweredHandlerSource.contains("@DelegatesTo(IRewardHandler.class)"));
         assertTrue(loweredHandlerSource.contains("public final class SingleAccessHandler<RewardValue>"));
         assertTrue(loweredHandlerSource.contains("implements PlayerAccess"));
         assertTrue(loweredHandlerSource.contains("implements PlayerAccess"));
@@ -126,11 +126,11 @@ class DependencyAccessSourceLowererTest {
         sources.put("org.example.SingleAccessHandler", """
                 package org.example;
 
-                import org.tavall.dependency.annotations.DelegatesToInterface;
+                import org.tavall.dependency.annotations.DelegatesTo;
                 import org.tavall.dependency.annotations.GrantDependencyAccess;
 
                 @GrantDependencyAccess
-                @DelegatesToInterface(value = IRewardHandler.class)
+                @DelegatesTo(IRewardHandler.class)
                 public final class SingleAccessHandler<RewardValue>
                         implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository> {
                 }
@@ -215,11 +215,11 @@ class DependencyAccessSourceLowererTest {
         sources.put("org.example.MultiAccessHandler", """
                 package org.example;
 
-                import org.tavall.dependency.annotations.DelegatesToInterface;
+                import org.tavall.dependency.annotations.DelegatesTo;
                 import org.tavall.dependency.annotations.GrantDependencyAccess;
 
                 @GrantDependencyAccess
-                @DelegatesToInterface(value = IRewardHandler.class)
+                @DelegatesTo(IRewardHandler.class)
                 public final class MultiAccessHandler<RewardValue>
                         implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository>,
                         EconomyAccess<IWalletRegistry, ITransactionRepository>,

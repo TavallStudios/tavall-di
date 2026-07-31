@@ -13,6 +13,7 @@ import org.tavall.dependency.DependencyLoaderAccess;
 import org.tavall.dependency.IDependencyInjectableConcrete;
 import org.tavall.dependency.IDependencyInjectableInterface;
 import org.tavall.dependency.annotations.ClassOptions;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.annotations.DelegatesToInterface;
 import org.tavall.dependency.injection.helpers.interfaces.IDependencyInjectorHelper;
 import org.tavall.dependency.maps.DependencyMap;
@@ -42,7 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 
 /**
- * Scans packages for annotated DI concretes and registers them against interface tokens.
+ * Scans packages for annotated DI concretes and registers them against dependency tokens.
  *
  * @param <INTERFACE> the injectable interface token type
  * @param <INSTANCE> the injectable concrete instance type
@@ -139,7 +140,7 @@ public class DependencyInjectorHelper<
         }
         Log.info("[DI] --- Phase 2: Annotation Scanning & Map Registration ");
         registerDependenciesViaAnnotation();
-        REGISTERED_BINDINGS.put(bootstrapKey, registeredInterfaceKeys());
+        REGISTERED_BINDINGS.put(bootstrapKey, registeredBindingKeys());
         flushPendingCacheRegistryMetaData(resolvedLoader);
 
         if (reload) {
@@ -212,9 +213,9 @@ public class DependencyInjectorHelper<
     }
 
     /**
-     * Registers annotated concrete classes against their declared interface tokens.
+     * Registers annotated concrete classes against their declared dependency tokens.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "deprecation"})
     public void registerDependenciesViaAnnotation() {
 
         Log.warn("[DI-Helper] ====== Beginning annotation-driven DI registration ======");
@@ -225,8 +226,13 @@ public class DependencyInjectorHelper<
         Set<RegisteredBinding> seenBindings = new LinkedHashSet<>();
 
         for (Class<? extends INSTANCE> rawScannedConcrete : loadedConcretes) {
-            DelegatesToInterface concreteAnnotation = rawScannedConcrete.getAnnotation(DelegatesToInterface.class);
-            if (concreteAnnotation == null) {
+            Set<Class<?>> validDelegatedTypes = validDelegatedTypes(rawScannedConcrete);
+            if (validDelegatedTypes.isEmpty()) {
+                if (hasDelegationAnnotation(rawScannedConcrete)) {
+                    Log.warn("[DI-Helper] No valid delegated dependency tokens found for "
+                            + rawScannedConcrete.getSimpleName() + ", skipping...");
+                    skipped++;
+                }
                 continue;
             }
             if (!IDependencyInjectableConcrete.class.isAssignableFrom(rawScannedConcrete)) {
@@ -236,47 +242,28 @@ public class DependencyInjectorHelper<
                 continue;
             }
 
-            Set<Class<? extends INTERFACE>> validInterfaces = new LinkedHashSet<>();
-            for (Class<?> linkedInterface : resolveLinkedInterfaces(concreteAnnotation)) {
-                if (!linkedInterface.isInterface()) {
-                    Log.warn("[DI-Helper] " + linkedInterface.getName() + " is not an interface token, skipping...");
-                    continue;
-                }
-                if (!IDependencyInjectableInterface.class.isAssignableFrom(linkedInterface)) {
-                    Log.warn("[DI-Helper] " + linkedInterface.getName()
-                            + " does not implement IDependencyInjectableInterface, skipping...");
-                    continue;
-                }
-                if (!doesConcreteImplementInterface(rawScannedConcrete, linkedInterface)) {
-                    continue;
-                }
-                validInterfaces.add((Class<? extends INTERFACE>) linkedInterface);
-            }
-
-            if (validInterfaces.isEmpty()) {
-                Log.warn("[DI-Helper] No valid delegated interfaces found for "
-                        + rawScannedConcrete.getSimpleName() + ", skipping...");
-                skipped++;
-                continue;
-            }
-
-            Class<? extends INTERFACE> primaryInterface = validInterfaces.iterator().next();
-            IDependencyInterface<INTERFACE> wrappedLinkedInterface = new DependencyInterface<>(primaryInterface);
+            Class<? extends INTERFACE> primaryDependencyType =
+                    (Class<? extends INTERFACE>) validDelegatedTypes.iterator().next();
+            IDependencyInterface<INTERFACE> wrappedDependencyType =
+                    new DependencyInterface<>(primaryDependencyType);
             IDependencyInstance<INSTANCE> wrappedLinkedConcrete = new DependencyInstance<>(rawScannedConcrete);
             IDependencyMetaData<INTERFACE, INSTANCE> dependencyMetaData = new DependencyMetaData<>();
-            dependencyMetaDataHelper.populateMetaData(dependencyMetaData, wrappedLinkedInterface, wrappedLinkedConcrete);
+            dependencyMetaDataHelper.populateMetaData(
+                    dependencyMetaData,
+                    wrappedDependencyType,
+                    wrappedLinkedConcrete
+            );
             registeredMetaData.add(dependencyMetaData);
 
-            for (Class<? extends INTERFACE> linkedInterface : validInterfaces) {
-                RegisteredBinding binding = new RegisteredBinding(linkedInterface, rawScannedConcrete);
+            for (Class<?> delegatedType : validDelegatedTypes) {
+                RegisteredBinding binding = new RegisteredBinding(delegatedType, rawScannedConcrete);
                 if (!seenBindings.add(binding)) {
                     Log.info("[DI-Helper] Duplicate scanned binding for "
-                            + linkedInterface.getName() + " -> " + rawScannedConcrete.getName() + ", skipping");
+                            + delegatedType.getName() + " -> " + rawScannedConcrete.getName() + ", skipping");
                     continue;
                 }
-                DependencyMap.getDependencyMap().registerDependency(linkedInterface, dependencyMetaData);
-                Object registeredInstance = DependencyLoaderAccess.findInstance(
-                        (Class<IDependencyInjectableInterface>) linkedInterface);
+                DependencyMap.getDependencyMap().registerDependency(delegatedType, dependencyMetaData);
+                Object registeredInstance = DependencyLoaderAccess.findInstance((Class<Object>) delegatedType);
                 if (registeredInstance != null) {
                     Log.critical("" + registeredInstance.getClass().getSimpleName());
                 }
@@ -289,55 +276,75 @@ public class DependencyInjectorHelper<
         }
 
         Log.warn("[DI-Helper] Finished annotation DI registration, skipped classes: " + skipped
-                + ", registered interface bindings: " + registeredBindings);
+                + ", registered dependency bindings: " + registeredBindings);
     }
 
     private void unregisterLoadedBindings() {
         for (Class<? extends INSTANCE> rawScannedConcrete : loadedConcretes) {
-            DelegatesToInterface concreteAnnotation = rawScannedConcrete.getAnnotation(DelegatesToInterface.class);
-            if (concreteAnnotation == null) {
-                continue;
-            }
-
-            for (Class<?> linkedInterface : resolveLinkedInterfaces(concreteAnnotation)) {
-                if (linkedInterface == null || !linkedInterface.isInterface()) {
-                    continue;
-                }
-                DependencyMap.getDependencyMap().removeDependency(linkedInterface);
+            for (Class<?> delegatedType : validDelegatedTypes(rawScannedConcrete)) {
+                DependencyMap.getDependencyMap().removeDependency(delegatedType);
             }
         }
     }
 
-    private Set<Class<?>> registeredInterfaceKeys() {
+    private Set<Class<?>> registeredBindingKeys() {
         Set<Class<?>> bindings = new LinkedHashSet<>();
         for (Class<? extends INSTANCE> rawScannedConcrete : loadedConcretes) {
-            DelegatesToInterface concreteAnnotation = rawScannedConcrete.getAnnotation(DelegatesToInterface.class);
-            if (concreteAnnotation == null) {
-                continue;
-            }
-            bindings.addAll(resolveLinkedInterfaces(concreteAnnotation));
+            bindings.addAll(validDelegatedTypes(rawScannedConcrete));
         }
         return bindings;
     }
 
-    private Set<Class<?>> resolveLinkedInterfaces(DelegatesToInterface concreteAnnotation) {
-        Set<Class<?>> linkedInterfaces = new LinkedHashSet<>();
-        if (concreteAnnotation == null) {
-            return linkedInterfaces;
+    private Set<Class<?>> validDelegatedTypes(Class<? extends INSTANCE> rawScannedConcrete) {
+        Set<Class<?>> validTypes = new LinkedHashSet<>();
+        for (Class<?> delegatedType : resolveDelegatedTypes(rawScannedConcrete)) {
+            if (!delegatedType.isAssignableFrom(rawScannedConcrete)) {
+                Log.warn("[DI-Helper] " + delegatedType.getName()
+                        + " is not assignable from " + rawScannedConcrete.getName() + ", skipping...");
+                continue;
+            }
+            validTypes.add(delegatedType);
         }
-
-        addLinkedInterface(linkedInterfaces, concreteAnnotation.value());
-        addLinkedInterface(linkedInterfaces, concreteAnnotation.getLinkedInterface());
-        Arrays.stream(concreteAnnotation.getLinkedInterfaces())
-                .forEach(linkedInterface -> addLinkedInterface(linkedInterfaces, linkedInterface));
-        return linkedInterfaces;
+        return validTypes;
     }
 
-    private void addLinkedInterface(Set<Class<?>> linkedInterfaces, Class<?> linkedInterface) {
-        if (linkedInterface == null || linkedInterface == Void.class) {
+    @SuppressWarnings("deprecation")
+    private Set<Class<?>> resolveDelegatedTypes(Class<?> rawScannedConcrete) {
+        Set<Class<?>> delegatedTypes = new LinkedHashSet<>();
+        DelegatesTo delegatesTo = rawScannedConcrete.getAnnotation(DelegatesTo.class);
+        DelegatesToInterface legacyDelegatesTo =
+                rawScannedConcrete.getAnnotation(DelegatesToInterface.class);
+
+        if (delegatesTo != null && legacyDelegatesTo != null) {
+            throw new IllegalStateException("Dependency concrete cannot declare both @DelegatesTo and "
+                    + "@DelegatesToInterface: " + rawScannedConcrete.getName());
+        }
+        if (delegatesTo != null) {
+            Arrays.stream(delegatesTo.value())
+                    .forEach(delegatedType -> addDelegatedType(delegatedTypes, delegatedType));
+            return delegatedTypes;
+        }
+        if (legacyDelegatesTo == null) {
+            return delegatedTypes;
+        }
+
+        addDelegatedType(delegatedTypes, legacyDelegatesTo.value());
+        addDelegatedType(delegatedTypes, legacyDelegatesTo.getLinkedInterface());
+        Arrays.stream(legacyDelegatesTo.getLinkedInterfaces())
+                .forEach(delegatedType -> addDelegatedType(delegatedTypes, delegatedType));
+        return delegatedTypes;
+    }
+
+    private boolean hasDelegationAnnotation(Class<?> rawScannedConcrete) {
+        return rawScannedConcrete.isAnnotationPresent(DelegatesTo.class)
+                || rawScannedConcrete.isAnnotationPresent(DelegatesToInterface.class);
+    }
+
+    private void addDelegatedType(Set<Class<?>> delegatedTypes, Class<?> delegatedType) {
+        if (delegatedType == null || delegatedType == Void.class) {
             return;
         }
-        linkedInterfaces.add(linkedInterface);
+        delegatedTypes.add(delegatedType);
     }
 
     private void flushPendingCacheRegistryMetaData(ClassLoader resolvedLoader) {

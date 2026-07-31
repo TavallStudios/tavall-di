@@ -1,9 +1,9 @@
 package org.tavall.dependency.composition.fixtures;
 
 import org.tavall.dependency.IDependencyInjectableConcrete;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 
-@DelegatesToInterface(getLinkedInterface = ITestAuditLogger.class)
+@DelegatesTo(ITestAuditLogger.class)
 public final class TestAuditLogger implements ITestAuditLogger, IDependencyInjectableConcrete {
     private int auditCount;
     private String lastAuditMessage;

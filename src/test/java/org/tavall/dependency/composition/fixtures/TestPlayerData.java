@@ -1,11 +1,12 @@
 package org.tavall.dependency.composition.fixtures;
 
 import org.tavall.dependency.IDependencyInjectableConcrete;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 
-@DelegatesToInterface(
-        getLinkedInterface = ITestPlayerData.class,
-        getLinkedInterfaces = {ITestPlayerWallet.class})
+@DelegatesTo({
+        ITestPlayerData.class,
+        ITestPlayerWallet.class
+})
 public final class TestPlayerData implements ITestPlayerData, ITestPlayerWallet, IDependencyInjectableConcrete {
     private long coins;
 

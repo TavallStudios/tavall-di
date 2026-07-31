@@ -1,13 +1,13 @@
 package org.tavall.dependency.injection.helpers.lifecyclefixtures;
 
 import org.tavall.dependency.IDependencyInjectableConcrete;
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.fixtures.contracts.interfaces.IUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@DelegatesToInterface(getLinkedInterface = IUtils.class)
+@DelegatesTo(IUtils.class)
 public class LifecycleDelegatingUtilsService implements IUtils, IDependencyInjectableConcrete {
     private final Map<String, Object> configValues = new HashMap<>();
 
