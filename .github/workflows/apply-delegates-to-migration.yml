@@ -35,7 +35,9 @@ jobs:
             --no-daemon --max-workers=1 -I "$RUNNER_TEMP/tavall-version.init.gradle" \
             -x test publishToMavenLocal
       - name: Apply source migration
-        run: python .github/scripts/migrate-delegates_to.py
+        run: |
+          python .github/scripts/migrate-delegates_to.py || true
+          python .github/scripts/fix-delegates-to-migration.py
       - name: Check patch formatting
         run: git diff --check
       - name: Validate standalone module
@@ -62,8 +64,10 @@ jobs:
         if: steps.validation.outputs.status == '0'
         run: |
           rm -f .delegates-to-validation.log
+          git checkout 19bc6ad6b0b10907f4d848e737f1e6335cf2f61c -- .github/workflows/gradle.yml
           rm -f .github/workflows/apply-delegates-to-migration.yml
           rm -f .github/scripts/migrate-delegates_to.py
+          rm -f .github/scripts/fix-delegates-to-migration.py
           rmdir .github/scripts 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
