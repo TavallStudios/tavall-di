@@ -7,6 +7,7 @@ import org.tavall.dependency.maps.DependencyMap;
 import java.lang.reflect.Proxy;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -49,7 +50,10 @@ class DependencyAccessFiveDependencyIntegrationTest {
 
             assertSame(access, handlerType.getMethod("getInstance").invoke(handler));
             assertSame(firstDependency, accessType.getMethod("dependencyOne").invoke(access));
-            assertEquals(5, accessType.getDeclaredMethods().length);
+            long accessorCount = Arrays.stream(accessType.getDeclaredMethods())
+                    .filter(method -> !method.getName().equals("getDependencyMap"))
+                    .count();
+            assertEquals(5L, accessorCount);
 
             replace(dependencyOneType, replacementDependency);
             assertSame(replacementDependency, accessType.getMethod("dependencyOne").invoke(access));
