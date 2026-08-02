@@ -120,7 +120,7 @@ These foundations do not prove that the approved access-generation design is imp
 
 # `@DelegatesTo` Registration
 
-## Final Contract
+## Planned Final Contract
 
 A managed concrete is declared with `@DelegatesTo`:
 
@@ -155,7 +155,7 @@ The scanner must:
 
 Marker interfaces are not required to identify injectable interfaces or concretes.
 
-## Processor Activation
+## Planned Processor Activation
 
 `@DelegatesTo` is also the activation boundary for expanded `DependencyAccess`.
 
@@ -172,7 +172,7 @@ One type parameter is left as a normal access token and is not expanded.
 
 `IDependencyMetaData` is the authoritative owner of the dependency instance.
 
-The final metadata contract must expose typed lookup:
+The planned metadata contract must expose typed lookup:
 
 ```java
 <T> T findInstance(Class<T> dependencyType);
@@ -200,7 +200,7 @@ Metadata lookup must not:
 
 The design intentionally leaves direct map mutation available. Tavall DI provides safe named methods and validation for normal operations but does not forbid advanced developers from deliberately using inherited map operations.
 
-The map contract must provide:
+The planned map contract must provide:
 
 ```java
 <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType);
@@ -225,7 +225,7 @@ Inherited raw map operations are intentionally sharp. They do not receive a fict
 
 `IDependencyAccess` is the shared map-backed access surface.
 
-The final contract should expose:
+The planned contract should expose:
 
 ```java
 default IDependencyMap getDependencyMap() {
@@ -247,7 +247,7 @@ Production lookup must prefer `IDependencyMap`.
 
 # Expanded Dependency Access
 
-## Authored Form
+## Planned Authored Form
 
 Two or more parameters activate expansion:
 
@@ -285,7 +285,7 @@ Four direct dependencies is the preferred code-review boundary. It is not:
 
 A larger direct declaration is valid when it remains clearer than a bundle.
 
-## Generated Shape
+## Planned Generated Shape
 
 The lowerer must rewrite the authored variable-arity declaration into a valid single access token.
 
@@ -365,7 +365,7 @@ public interface PlayerRewardDependencies {
 }
 ```
 
-The bundle implementation is a normal managed concrete:
+The planned bundle implementation is a normal managed concrete:
 
 ```java
 @DelegatesTo(PlayerRewardDependencies.class)
@@ -389,7 +389,7 @@ Bundles must not require reflective record hydration or a bundle-specific factor
 
 Metadata owns creation, initialization, lifecycle callbacks, and replacement.
 
-The final replacement flow is:
+The planned replacement flow is:
 
 ```text
 replacement request
@@ -412,7 +412,7 @@ The feature requires pre-Javac source lowering because ordinary JSR 269 processi
 
 The build must run lowering before Java compilation.
 
-The source lowerer owns:
+The planned source lowerer owns:
 
 - identifying `DependencyAccess<...>` declarations
 - distinguishing one-parameter and expanded modes
@@ -420,7 +420,7 @@ The source lowerer owns:
 - rewriting the consumer to its final access token
 - preserving unrelated annotations, interfaces, imports, and source structure
 
-The annotation processor owns:
+The planned annotation processor owns:
 
 - generating access layers
 - generating typed map-backed getters
