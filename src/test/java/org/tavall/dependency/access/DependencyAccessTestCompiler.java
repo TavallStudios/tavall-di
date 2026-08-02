@@ -32,12 +32,11 @@ final class DependencyAccessTestCompiler {
             Path outputDirectory = workingDirectory.resolve("classes");
             Files.createDirectories(sourceDirectory);
             Files.createDirectories(outputDirectory);
-
             writeSources(sourceDirectory, sourcesByQualifiedName);
 
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
             if (compiler == null) {
-                throw new IllegalStateException("A system Java compiler is required to run the dependency-access tests");
+                throw new IllegalStateException("A system Java compiler is required");
             }
 
             DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
@@ -45,15 +44,12 @@ final class DependencyAccessTestCompiler {
                     diagnostics,
                     null,
                     StandardCharsets.UTF_8)) {
-                List<Path> sourceFiles = collectSourceFiles(sourceDirectory);
-                Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromPaths(sourceFiles);
-
-                String classPath = System.getProperty("java.class.path");
+                Iterable<? extends JavaFileObject> compilationUnits =
+                        fileManager.getJavaFileObjectsFromPaths(collectSourceFiles(sourceDirectory));
                 List<String> compilerOptions = List.of(
-                        "-classpath", classPath,
+                        "-classpath", System.getProperty("java.class.path"),
                         "-d", outputDirectory.toString(),
-                        "-processor", "org.tavall.dependency.processor.DependencyAccessGrantProcessor");
-
+                        "-proc:none");
                 Boolean success = compiler.getTask(
                         null,
                         fileManager,
@@ -61,35 +57,42 @@ final class DependencyAccessTestCompiler {
                         compilerOptions,
                         null,
                         compilationUnits).call();
-
                 if (success == null || !success) {
                     throw new IllegalStateException(formatDiagnostics(diagnostics));
                 }
             }
-
             return outputDirectory;
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to compile dependency-access sources", exception);
         }
     }
 
-    static Class<?> loadClass(Path outputDirectory, String qualifiedName) {
+    static URLClassLoader createClassLoader(Path outputDirectory) {
         try {
             URL outputUrl = outputDirectory.toUri().toURL();
-            URLClassLoader loader = new URLClassLoader(new URL[]{outputUrl}, DependencyAccessTestCompiler.class.getClassLoader());
+            return new URLClassLoader(
+                    new URL[]{outputUrl},
+                    DependencyAccessTestCompiler.class.getClassLoader());
+        } catch (Exception exception) {
+            throw new IllegalStateException("Failed to create dependency-access test class loader", exception);
+        }
+    }
+
+    static Class<?> loadClass(Path outputDirectory, String qualifiedName) {
+        try (URLClassLoader loader = createClassLoader(outputDirectory)) {
             return Class.forName(qualifiedName, true, loader);
         } catch (Exception exception) {
             throw new IllegalStateException("Failed to load compiled test class " + qualifiedName, exception);
         }
     }
 
-    private static void writeSources(Path sourceDirectory, Map<String, String> sourcesByQualifiedName) throws IOException {
+    private static void writeSources(
+            Path sourceDirectory,
+            Map<String, String> sourcesByQualifiedName) throws IOException {
         for (Map.Entry<String, String> entry : sourcesByQualifiedName.entrySet()) {
-            String qualifiedName = entry.getKey();
-            String source = entry.getValue();
-            Path sourceFile = sourceDirectory.resolve(qualifiedName.replace('.', '/') + ".java");
+            Path sourceFile = sourceDirectory.resolve(entry.getKey().replace('.', '/') + ".java");
             Files.createDirectories(sourceFile.getParent());
-            Files.writeString(sourceFile, source, StandardCharsets.UTF_8);
+            Files.writeString(sourceFile, entry.getValue(), StandardCharsets.UTF_8);
         }
     }
 
