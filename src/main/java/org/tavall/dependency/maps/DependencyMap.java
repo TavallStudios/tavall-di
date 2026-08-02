@@ -156,7 +156,7 @@ public class DependencyMap
 
         List<Class<?>> mappedTypes = entrySet().stream()
                 .filter(entry -> entry.getValue() == metaData)
-                .map(entry -> entry.getKey())
+                .map(entry -> (Class<?>) entry.getKey())
                 .toList();
         for (Class<?> mappedType : mappedTypes) {
             if (!mappedType.isInstance(replacement)) {
