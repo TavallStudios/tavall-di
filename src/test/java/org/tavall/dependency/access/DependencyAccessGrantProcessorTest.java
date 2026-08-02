@@ -37,6 +37,7 @@ class DependencyAccessGrantProcessorTest {
         assertNotNull(accessClass.getAnnotation(DelegatesTo.class));
         Set<String> methodNames = Arrays.stream(accessClass.getDeclaredMethods())
                 .map(Method::getName)
+                .filter(name -> !name.equals("getDependencyMap"))
                 .collect(Collectors.toSet());
         assertEquals(Set.of("playerRegistry", "playerDataRepository", "economyService"), methodNames);
     }
@@ -60,7 +61,10 @@ class DependencyAccessGrantProcessorTest {
                 outputDirectory,
                 "org.example.RewardHandlerDependencyAccess");
 
-        assertEquals(10, accessClass.getDeclaredMethods().length);
+        long accessorCount = Arrays.stream(accessClass.getDeclaredMethods())
+                .filter(method -> !method.getName().equals("getDependencyMap"))
+                .count();
+        assertEquals(10L, accessorCount);
         assertTrue(Arrays.stream(accessClass.getDeclaredMethods())
                 .anyMatch(method -> method.getName().equals("dependencyTen")));
     }
