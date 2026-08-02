@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.tavall.dependency.annotations.DelegatesTo;
 
 import java.lang.reflect.Method;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DependencyAccessGrantProcessorTest {
 
     @Test
-    void generatedAccessSourceCompilesWithTypedGetters() {
+    void generatedAccessSourceCompilesWithTypedGetters() throws Exception {
         DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
         Map<String, String> loweredSources = lowerer.lowerSources(buildSources(
                 "IPlayerRegistry",
@@ -26,24 +27,26 @@ class DependencyAccessGrantProcessorTest {
                 "IEconomyService"));
         Path outputDirectory = DependencyAccessTestCompiler.compileSources(loweredSources);
 
-        Class<?> handlerClass = DependencyAccessTestCompiler.loadClass(
-                outputDirectory,
-                "org.example.RewardHandler");
-        Class<?> accessClass = DependencyAccessTestCompiler.loadClass(
-                outputDirectory,
-                "org.example.RewardHandlerDependencyAccess");
+        try (URLClassLoader loader = DependencyAccessTestCompiler.createClassLoader(outputDirectory)) {
+            Class<?> handlerClass = Class.forName("org.example.RewardHandler", true, loader);
+            Class<?> accessClass = Class.forName(
+                    "org.example.RewardHandlerDependencyAccess",
+                    true,
+                    loader
+            );
 
-        assertNotNull(handlerClass.getAnnotation(DelegatesTo.class));
-        assertNotNull(accessClass.getAnnotation(DelegatesTo.class));
-        Set<String> methodNames = Arrays.stream(accessClass.getDeclaredMethods())
-                .map(Method::getName)
-                .filter(name -> !name.equals("getDependencyMap"))
-                .collect(Collectors.toSet());
-        assertEquals(Set.of("playerRegistry", "playerDataRepository", "economyService"), methodNames);
+            assertNotNull(handlerClass.getAnnotation(DelegatesTo.class));
+            assertNotNull(accessClass.getAnnotation(DelegatesTo.class));
+            Set<String> methodNames = Arrays.stream(accessClass.getDeclaredMethods())
+                    .map(Method::getName)
+                    .filter(name -> !name.equals("getDependencyMap"))
+                    .collect(Collectors.toSet());
+            assertEquals(Set.of("playerRegistry", "playerDataRepository", "economyService"), methodNames);
+        }
     }
 
     @Test
-    void generatedAccessSourceCompilesWithTenDependencies() {
+    void generatedAccessSourceCompilesWithTenDependencies() throws Exception {
         Map<String, String> loweredSources = new DependencyAccessSourceLowerer().lowerSources(buildSources(
                 "IDependencyOne",
                 "IDependencyTwo",
@@ -57,16 +60,20 @@ class DependencyAccessGrantProcessorTest {
                 "IDependencyTen"));
         Path outputDirectory = DependencyAccessTestCompiler.compileSources(loweredSources);
 
-        Class<?> accessClass = DependencyAccessTestCompiler.loadClass(
-                outputDirectory,
-                "org.example.RewardHandlerDependencyAccess");
+        try (URLClassLoader loader = DependencyAccessTestCompiler.createClassLoader(outputDirectory)) {
+            Class<?> accessClass = Class.forName(
+                    "org.example.RewardHandlerDependencyAccess",
+                    true,
+                    loader
+            );
 
-        long accessorCount = Arrays.stream(accessClass.getDeclaredMethods())
-                .filter(method -> !method.getName().equals("getDependencyMap"))
-                .count();
-        assertEquals(10L, accessorCount);
-        assertTrue(Arrays.stream(accessClass.getDeclaredMethods())
-                .anyMatch(method -> method.getName().equals("dependencyTen")));
+            long accessorCount = Arrays.stream(accessClass.getDeclaredMethods())
+                    .filter(method -> !method.getName().equals("getDependencyMap"))
+                    .count();
+            assertEquals(10L, accessorCount);
+            assertTrue(Arrays.stream(accessClass.getDeclaredMethods())
+                    .anyMatch(method -> method.getName().equals("dependencyTen")));
+        }
     }
 
     private Map<String, String> buildSources(String... dependencyTypes) {
