@@ -16,7 +16,9 @@ import org.tavall.dependency.metadata.wrappers.DependencyInstance;
 import org.tavall.dependency.metadata.wrappers.DependencyInterface;
 import org.tavall.logging.Log;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -154,10 +156,12 @@ public class DependencyMap
             throw new IllegalStateException("Replacement supplier returned null for " + dependencyType.getName());
         }
 
-        List<Class<?>> mappedTypes = entrySet().stream()
-                .filter(entry -> entry.getValue() == metaData)
-                .map(entry -> (Class<?>) entry.getKey())
-                .toList();
+        List<Class<?>> mappedTypes = new ArrayList<>();
+        for (Map.Entry<Class<?>, IDependencyMetaData<?, ?>> entry : entrySet()) {
+            if (entry.getValue() == metaData) {
+                mappedTypes.add(entry.getKey());
+            }
+        }
         for (Class<?> mappedType : mappedTypes) {
             if (!mappedType.isInstance(replacement)) {
                 throw new IllegalArgumentException("Replacement " + replacement.getClass().getName()
