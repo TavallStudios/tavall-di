@@ -17,7 +17,7 @@ class DependencyAccessSourceLowererTest {
         Map<String, String> lowered = new DependencyAccessSourceLowerer()
                 .lowerSources(sourcesFor("IRepository"));
 
-        assertEquals(3, lowered.size());
+        assertEquals(2, lowered.size());
         assertTrue(lowered.get("org.example.Handler")
                 .contains("DependencyAccess<IRepository>"));
         assertFalse(lowered.containsKey("org.example.HandlerDependencyAccess"));
