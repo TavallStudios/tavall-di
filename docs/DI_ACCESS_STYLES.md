@@ -104,9 +104,9 @@ The system does not need to forbid deliberate direct map access merely because i
 `DependencyAccess` supports two authoring modes:
 
 1. A single authored domain bundle.
-2. Two to four directly expanded dependency types.
+2. Two or more directly expanded dependency types.
 
-After four direct dependencies, introduce a domain bundle.
+The processor supports arbitrary expanded arity. After four direct dependencies, a domain bundle is the preferred architecture style, not a compiler or runtime restriction.
 
 ---
 
@@ -191,12 +191,14 @@ public final class PlayerRewardHandler
 }
 ```
 
-### Use a Bundle When
+### Prefer a Bundle When
 
 - The class requires more than four dependencies.
 - The dependency group represents a reusable domain boundary.
 - Several behaviors share the same dependency contract.
 - The dependency set deserves explicit naming and documentation.
+
+This is an architecture guideline. Direct expansion remains valid and supported beyond four parameters when it is the clearer design.
 
 A bundle should be domain-specific. Avoid generic bags such as `CommonDependencies` that gradually become a storage unit for unrelated services.
 
@@ -204,7 +206,7 @@ A bundle should be domain-specific. Avoid generic bags such as `CommonDependenci
 
 ## Mode 2: Expanded Direct Dependencies
 
-For two to four dependencies, the class may declare them directly:
+For two or more dependencies, the class may declare them directly:
 
 ```java
 @DelegatesTo(IPlayerRewardHandler.class)
@@ -236,34 +238,38 @@ When the processor finds an annotated concrete implementing `DependencyAccess`:
 - one type parameter means bundle mode and requires no expansion
 - two or more type parameters activate expansion
 - parameters after the first produce the additional generated access types required by Java
+- generation continues for every supplied type parameter without an artificial maximum
 - the generated access surface delegates every getter to `DependencyMap#getInstance(Class<?>)`
 - generated runtime instances, when required by the lowered shape, are registered through the normal `@DelegatesTo` and metadata path
 
 Generated code must not maintain a second instance cache. Every generated getter resolves the metadata-owned instance from the map.
 
-### Expansion Limit
+### Arity and Style Boundary
 
-Use direct expansion for at most four dependencies:
+All of these are technically supported:
 
 ```java
 DependencyAccess<A, B>
-DependencyAccess<A, B, C>
 DependencyAccess<A, B, C, D>
+DependencyAccess<A, B, C, D, E>
+DependencyAccess<A, B, C, D, E, F, G, H>
 ```
 
-For five or more dependencies, author a domain bundle:
+The processor keeps generating the required access chain for every parameter.
+
+After four direct dependencies, code review should normally ask whether the dependency set represents a domain bundle:
 
 ```java
 DependencyAccess<PlayerRewardDependencies>
 ```
 
-The four-dependency limit is a style boundary, not an excuse to build a hostile runtime guard. Tooling may warn when the direct form exceeds four, while review should move the class to a domain bundle.
+That is a maintainability rule for authored code. The processor must not reject, truncate, or warn merely because the declaration exceeds four parameters.
 
 ---
 
 # Recommended Production Pattern
 
-## One to Four Dependencies
+## One to Four Direct Dependencies
 
 Use expanded `DependencyAccess` with handler-local getters when dependencies repeat:
 
@@ -285,13 +291,15 @@ public final class PlayerRewardHandler
 
 The local getters do not cache dependencies. They give readable names to live map-backed lookups.
 
-## More Than Four Dependencies
+## More Than Four Direct Dependencies
 
-Create a domain bundle and consume it through a single type parameter:
+Prefer a domain bundle when the larger dependency set forms a meaningful boundary:
 
 ```java
 DependencyAccess<PlayerRewardDependencies>
 ```
+
+Keep direct expansion when the larger flat list is genuinely clearer. The framework supports both.
 
 ## One-Off Infrastructure Lookup
 
@@ -310,9 +318,9 @@ Use the smallest pattern that keeps the dependency boundary understandable.
 
 | Rank | Style | Use |
 |---:|---|---|
-| 1 | Expanded `DependencyAccess` with named getters | Default for two to four dependencies. |
-| 2 | Domain bundle through `DependencyAccess<Bundle>` | Default after four dependencies or for reusable domains. |
-| 3 | Direct expanded access | Good for small methods where `getInstance().dependency()` is already clear. |
+| 1 | Expanded `DependencyAccess` with named getters | Default for small direct dependency sets. |
+| 2 | Domain bundle through `DependencyAccess<Bundle>` | Preferred after four dependencies or for reusable domains. |
+| 3 | Larger direct expanded access | Supported when a flat dependency surface remains clearer than a bundle. |
 | 4 | Direct `DependencyMap#getInstance` | Good for infrastructure, bootstrap, and isolated lookups. |
 | 5 | Metadata access | Framework, lifecycle, diagnostics, and tests. |
 | 6 | Cached dependency fields | Only when construction-time capture is intentional. |
@@ -385,9 +393,10 @@ Test that:
 
 Test that:
 
-- two, three, and four direct dependencies generate successfully
+- two, three, four, five, and ten-or-more direct dependencies generate successfully
 - generated getters use `DependencyMap#getInstance`
-- the first parameter establishes the access root and later parameters expand it
+- the first parameter establishes the access root and every later parameter expands it
+- generated output is deterministic for arbitrary arity
 - missing dependencies fail at the getter that requests them
 - generated access does not cache instances separately
 
