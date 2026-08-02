@@ -1,178 +1,105 @@
 # About
 
-Tavall DI owns dependency discovery, token delegation, metadata ownership, instance lifecycle, replacement, typed dependency access, and the compile-time lowering required to support expandable `DependencyAccess<...>` declarations.
+Tavall DI owns dependency discovery, token delegation, metadata ownership, instance lifecycle, replacement, typed dependency access, and the source lowering required for expandable `DependencyAccess<...>` declarations.
 
-This document is the authoritative final system contract for Tavall DI. It separates current production foundations from planned changes required by the approved design.
+This document is the authoritative final system contract. The detailed production and test access rankings live in [Tavall DI Access Styles](DI_ACCESS_STYLES.md).
 
-Tavall DI owns:
-
-- `@DelegatesTo` binding declarations
-- token-to-metadata registration
-- metadata-owned dependency instances
-- lifecycle initialization and replacement
-- `DependencyMap` and `IDependencyMap`
-- `IDependencyAccess`
-- single-parameter bundle access
-- expanded dependency-access generation
-- access-name validation
-- compatibility migration from deprecated DI surfaces
-- DI-focused tests and production verification
-
-Tavall DI does not own:
-
-- application-domain bundle contents
-- application startup order outside DI lifecycle callbacks
-- platform event registration
-- Bukkit, Velocity, Spring, or other framework lifecycle policy
-- cache, registry, database, or event-bus domain rules
-- consumer-module architecture beyond the DI contract they import
-
-Implementation history is not maintained in this document. A separate progression document is not currently required.
+Tavall DI does not own application-domain bundle contents, platform lifecycle policy, event routing, persistence rules, or consumer-module architecture.
 
 # Design Sources
 
-- [Tavall DI Access Styles](DI_ACCESS_STYLES.md)
 - [`@DelegatesTo`](../src/main/java/org/tavall/dependency/annotations/DelegatesTo.java)
 - [`DependencyMap`](../src/main/java/org/tavall/dependency/maps/DependencyMap.java)
 - [`IDependencyMap`](../src/main/java/org/tavall/dependency/maps/interfaces/IDependencyMap.java)
+- [`DependencyMetaData`](../src/main/java/org/tavall/dependency/metadata/DependencyMetaData.java)
 - [`IDependencyMetaData`](../src/main/java/org/tavall/dependency/metadata/interfaces/IDependencyMetaData.java)
 - [`IDependencyAccess`](../src/main/java/org/tavall/dependency/IDependencyAccess.java)
-- [`DependencyAccess`](../src/main/java/org/tavall/dependency/access/DependencyAccess.java)
+- [`DependencyAccess`](../src/main/java/org/tavall/dependency/DependencyAccess.java)
 - [`DependencyAccessSourceLowerer`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowerer.java)
-- [`DependencyAccessGrantProcessor`](../src/main/java/org/tavall/dependency/processor/DependencyAccessGrantProcessor.java)
+- [`DependencyAccessSourceLowererMain`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowererMain.java)
+- [Tavall DI Access Styles](DI_ACCESS_STYLES.md)
 
-Separate Final Design: Not created. The approved design decisions are captured directly by this Final System document and the access-style support document.
+Separate Final Design: Not created. The accepted design is implemented and captured directly by this Final System document.
 
 # System Guide
 
-| System Area | Section |
+| Area | Section |
 |---|---|
-| Runtime ownership | [Technical Architecture](#technical-architecture) |
-| Current implementation | [Active Production Foundations](#active-production-foundations) |
-| Binding declarations | [`@DelegatesTo` Registration](#delegatesto-registration) |
-| Instance authority | [Metadata-Owned Instances](#metadata-owned-instances) |
-| Map behavior | [Dependency Map](#dependency-map) |
-| Access API | [Dependency Access Contract](#dependency-access-contract) |
-| Generated access | [Expanded Dependency Access](#expanded-dependency-access) |
-| Domain bundles | [Authored Domain Bundles](#authored-domain-bundles) |
-| Lifecycle and replacement | [Lifecycle and Replacement](#lifecycle-and-replacement) |
-| Compatibility cleanup | [Migration and Deprecated Surfaces](#migration-and-deprecated-surfaces) |
-| Invalid state | [Failure Rules](#failure-rules) |
-| Evidence and missing work | [Production Verification](#production-verification) |
+| Runtime ownership | [Runtime Model](#runtime-model) |
+| Binding declaration | [`@DelegatesTo` Pattern](#delegatesto-pattern) |
+| Metadata and lookup | [Metadata-Owned Instance Pattern](#metadata-owned-instance-pattern) |
+| Direct access | [Dependency Map Pattern](#dependency-map-pattern) |
+| Expanded access | [Generated Dependency Access Pattern](#generated-dependency-access-pattern) |
+| Domain grouping | [Domain Bundle Pattern](#domain-bundle-pattern) |
+| Replacement | [Replacement Pattern](#replacement-pattern) |
+| Migration | [Compatibility Surfaces](#compatibility-surfaces) |
+| Failures | [Failure Rules](#failure-rules) |
+| Evidence | [Production Verification](#production-verification) |
 
-# Technical Architecture
+# Runtime Model
 
-Tavall DI is a Java-only module. It must not depend on Bukkit, Velocity, Spring, or application-domain code.
-
-The canonical runtime flow is:
+Tavall DI has one runtime authority:
 
 ```text
-@DelegatesTo concrete
-    -> scanner validates delegated tokens
-    -> one IDependencyMetaData owns the concrete instance
-    -> DependencyMap stores token -> metadata entries
-    -> IDependencyMap#getInstance resolves metadata
-    -> metadata returns its stored compatible instance
+dependency token
+    -> DependencyMap
+    -> IDependencyMetaData
+    -> metadata-owned instance
 ```
 
-Typed access is layered over that runtime:
+Generated access classes, authored bundles, compatibility loaders, and direct map calls must resolve to that same metadata-owned instance. They must not create a second container or instance cache.
 
-```text
-DependencyAccess<Bundle>
-    -> resolves the authored bundle token
+`DependencyMap` remains a `ConcurrentHashMap<Class<?>, IDependencyMetaData<?, ?>>`. Inherited map mutation stays available for advanced or framework use. Named Tavall DI APIs validate coherent registration and replacement; raw inherited operations remain intentionally sharp.
 
-DependencyAccess<A, B, C, ...>
-    -> compile-time expansion
-    -> final generated access token
-    -> generated getter
-    -> IDependencyMap#getInstance(dependency token)
-```
+# `@DelegatesTo` Pattern
 
-There is one instance authority: metadata. Generated access types, bundles, maps, and compatibility loaders may route to that authority but may not create competing instance ownership.
-
-## Runtime Layers
-
-| Layer | Responsibility |
-|---|---|
-| Annotation declaration | Defines the concrete and every token that may resolve to it. |
-| Scanner and registration | Finds annotated concretes, validates assignability, creates metadata, and maps tokens. |
-| Metadata | Owns the concrete type, instance, supplier, wrappers, lifecycle state, and replacement behavior. |
-| Dependency map | Maps tokens to metadata and provides authoritative typed lookup. |
-| Access contract | Exposes map-backed lookup to consumers and generated access types. |
-| Source lowerer and processor | Convert expandable authored syntax into valid Java types and generated access surfaces. |
-| Compatibility loader | Supports tests, scopes, and migration without becoming the production access authority. |
-
-# Active Production Foundations
-
-The repository currently contains these production foundations:
-
-- `@DelegatesTo` accepts one or more dependency tokens and documents that all tokens resolve to the same metadata and singleton instance.
-- `DependencyMap` extends `ConcurrentHashMap<Class<?>, IDependencyMetaData<?, ?>>`.
-- `IDependencyMap` exposes registration, lookup, replacement, removal, and map-state operations.
-- `DependencyMap#findInstance` resolves the instance through mapped metadata.
-- `IDependencyMetaData` owns interface and concrete wrappers, the dependency instance, supplier, lifecycle state, source context, depth, role, priority, and replacement behavior.
-- `IDependencyAccess` currently provides local-first lookup and delegates global behavior through `DependencyLoader`.
-- `DependencyAccess` currently exposes a fixed four-parameter source shape.
-- The source lowerer and grant processor currently lower variable-looking generic declarations into grant metadata rather than the final generated access model.
-- A reflective bundle-access stack currently exists.
-
-These foundations do not prove that the approved access-generation design is implemented.
-
-# `@DelegatesTo` Registration
-
-## Planned Final Contract
-
-A managed concrete is declared with `@DelegatesTo`:
+`@DelegatesTo` marks a DI-managed concrete. The annotated concrete token is implicit.
 
 ```java
-@DelegatesTo(IPlayerData.class)
-public final class PlayerData implements IPlayerData {
+@DelegatesTo
+public final class AchievementPointTitleResolver {
 }
 ```
 
-Multiple assignable tokens may resolve to one concrete:
+Additional values are assignable interface or supertype tokens:
 
 ```java
 @DelegatesTo({
         IPlayerData.class,
         IPlayerWallet.class,
-        PlayerData.class
+        IPlayerPreferences.class
 })
 public final class PlayerData
-        implements IPlayerData, IPlayerWallet {
+        implements IPlayerData, IPlayerWallet, IPlayerPreferences {
 }
 ```
 
-The scanner must:
+The scanner registers:
 
-1. Discover concrete classes carrying `@DelegatesTo`.
-2. Reject a missing or empty token declaration.
-3. Verify every token is assignable from the concrete.
-4. Create one metadata object for the concrete.
-5. Register every delegated token against that same metadata object.
-6. Initialize the metadata-owned instance through the normal lifecycle.
-7. Produce deterministic diagnostics for conflicting registrations.
+```text
+PlayerData.class
+IPlayerData.class
+IPlayerWallet.class
+IPlayerPreferences.class
+    -> same metadata
+    -> same instance
+```
 
-Marker interfaces are not required to identify injectable interfaces or concretes.
+Rules:
 
-## Planned Processor Activation
+- annotation values are optional;
+- the concrete type is always included;
+- duplicate tokens are deduplicated;
+- every additional token must be assignable from the concrete;
+- one concrete produces one metadata object;
+- lifecycle initialization occurs once per metadata object;
+- `@DelegatesToInterface` remains deprecated compatibility only.
 
-`@DelegatesTo` is also the activation boundary for expanded `DependencyAccess`.
+Injectable interface and concrete marker interfaces are not required for new code.
 
-The processor runs access expansion when:
+# Metadata-Owned Instance Pattern
 
-- the declaration is a concrete class
-- the class carries `@DelegatesTo`
-- the class implements `DependencyAccess`
-- the declaration supplies two or more dependency type parameters
-
-One type parameter is left as a normal access token and is not expanded.
-
-# Metadata-Owned Instances
-
-`IDependencyMetaData` is the authoritative owner of the dependency instance.
-
-The planned metadata contract must expose typed lookup:
+`IDependencyMetaData` owns the created or bound dependency instance.
 
 ```java
 <T> T findInstance(Class<T> dependencyType);
@@ -180,60 +107,36 @@ The planned metadata contract must expose typed lookup:
 <T> T getInstance(Class<T> dependencyType);
 ```
 
-`findInstance` returns `null` when the stored instance cannot satisfy the requested token.
+`findInstance` returns `null` when the metadata does not expose a compatible instance.
 
-`getInstance` fails clearly when metadata does not own a compatible instance.
+`getInstance` fails when the requested token is incompatible.
 
-Every delegated token mapped to the same metadata must return the same object identity until replacement occurs.
+Metadata lookup returns the stored instance. It does not reconstruct the dependency, hydrate a bundle, consult another cache, or manufacture a token-specific wrapper instance.
 
-Metadata lookup must not:
+# Dependency Map Pattern
 
-- reflectively reconstruct the dependency
-- ask a generated access object to own the dependency
-- consult a second instance cache
-- return a wrapper when the caller requested the dependency token
-- silently cast an incompatible instance
-
-# Dependency Map
-
-`DependencyMap` remains the authoritative token-to-metadata map and may continue extending `ConcurrentHashMap`.
-
-The design intentionally leaves direct map mutation available. Tavall DI provides safe named methods and validation for normal operations but does not forbid advanced developers from deliberately using inherited map operations.
-
-The planned map contract must provide:
+`IDependencyMap` exposes nullable and required lookup:
 
 ```java
-<T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType);
-
 <T> T findInstance(Class<T> dependencyType);
 
 <T> T getInstance(Class<T> dependencyType);
 ```
 
-`getInstance` must:
+Required lookup follows:
 
-1. Resolve metadata for the token.
-2. Ask that metadata for the compatible stored instance.
-3. Return the metadata-owned instance.
-4. Fail with the requested token when the binding is missing or incompatible.
+```text
+Class<T>
+    -> mapped metadata
+    -> metadata.getInstance(Class<T>)
+    -> stored compatible instance
+```
 
-Registration and replacement methods must reject structurally incoherent state, including an instance that cannot satisfy its token.
-
-Inherited raw map operations are intentionally sharp. They do not receive a fictional guarantee that direct mutation preserves DI lifecycle or metadata coherence.
-
-# Dependency Access Contract
-
-`IDependencyAccess` is the shared map-backed access surface.
-
-The planned contract should expose:
+`IDependencyAccess` uses the owning map:
 
 ```java
 default IDependencyMap getDependencyMap() {
     return DependencyMap.getDependencyMap();
-}
-
-default <T> T findInstance(Class<T> dependencyType) {
-    return getDependencyMap().findInstance(dependencyType);
 }
 
 default <T> T getInstance(Class<T> dependencyType) {
@@ -241,79 +144,80 @@ default <T> T getInstance(Class<T> dependencyType) {
 }
 ```
 
-Production lookup must prefer `IDependencyMap`.
+Consumers may override `getDependencyMap()` to use a module, request, or test-owned map.
 
-`DependencyLoader` remains a test, scope, and compatibility surface during migration. It must not be the lookup path generated into production access classes.
+`requireInstance` remains a deprecated compatibility alias for `getInstance`.
 
-# Expanded Dependency Access
+# Single Dependency Access Pattern
 
-## Planned Authored Form
-
-Two or more parameters activate expansion:
+After source lowering, `DependencyAccess` has one runtime type parameter:
 
 ```java
-@DelegatesTo(IPlayerRewardHandler.class)
-public final class PlayerRewardHandler
-        implements IPlayerRewardHandler,
-                   DependencyAccess<
-                           IPlayerData,
-                           IEconomyService,
-                           IRewardAuditLogger
-                   > {
+public interface DependencyAccess<ACCESS> extends IDependencyAccess {
+    default ACCESS getInstance() {
+        return getDependencyMap().getInstance(getDependencyAccessType());
+    }
 }
 ```
 
-## Arity
-
-Expansion is technically unbounded.
+A one-parameter authored declaration is not expanded:
 
 ```java
-DependencyAccess<A, B>
-DependencyAccess<A, B, C, D>
-DependencyAccess<A, B, C, D, E, F, G, H>
+DependencyAccess<IPlayerData>
+DependencyAccess<PlayerRewardDependencies>
 ```
 
-The processor generates the access structure required for every supplied type.
+`getInstance()` resolves that authored token directly.
 
-Four direct dependencies is the preferred code-review boundary. It is not:
+# Generated Dependency Access Pattern
 
-- a parser limit
-- a processor limit
-- a compiler error
-- a truncation point
-- a required warning
-
-A larger direct declaration is valid when it remains clearer than a bundle.
-
-## Planned Generated Shape
-
-The lowerer must rewrite the authored variable-arity declaration into a valid single access token.
-
-The processor generates one access layer for each dependency parameter and links those layers through normal Java inheritance or an equivalent nominal type structure.
-
-The final generated access type exposes every accessor and is registered through normal `@DelegatesTo` and metadata behavior.
-
-Conceptually:
-
-```text
-Access1 -> playerData()
-Access2 extends Access1 -> economyService()
-Access3 extends Access2 -> rewardAuditLogger()
-```
-
-The consumer is lowered to:
+Two or more authored parameters activate source lowering:
 
 ```java
-DependencyAccess<FinalGeneratedAccess>
+@DelegatesTo
+public final class PlayerRewardHandler
+        implements DependencyAccess<
+                IPlayerData,
+                IEconomyService,
+                IRewardAuditLogger
+        > {
+}
 ```
 
-`DependencyAccess<ACCESS>#getInstance()` resolves `ACCESS` through `IDependencyMap`.
+The lowerer rewrites the consumer to:
 
-Generated access instances may be stable. Their dependency getters must resolve live from the map and must not cache dependency instances.
+```java
+DependencyAccess<PlayerRewardHandlerDependencyAccess>
+```
 
-## Accessor Naming
+It also generates a map-backed access class:
 
-Generated accessor names derive from simple type names:
+```java
+@DelegatesTo
+public final class PlayerRewardHandlerDependencyAccess
+        implements IDependencyAccess {
+    private final IDependencyMap dependencyMap;
+
+    public IPlayerData playerData() {
+        return dependencyMap.getInstance(IPlayerData.class);
+    }
+
+    public IEconomyService economyService() {
+        return dependencyMap.getInstance(IEconomyService.class);
+    }
+}
+```
+
+Generated access classes support:
+
+- a no-argument global-map constructor;
+- an `IDependencyMap` constructor for scoped consumers;
+- live dependency lookup on every getter;
+- technically unbounded dependency arity.
+
+Four direct dependencies is an architecture review preference, not a parser, compiler, processor, or runtime limit.
+
+Generated accessor names:
 
 ```text
 IPlayerData -> playerData()
@@ -321,42 +225,39 @@ IEconomyService -> economyService()
 PlayerProfileCache -> playerProfileCache()
 ```
 
-Rules:
+The lowerer rejects:
 
-1. Strip leading `I` only when followed by an uppercase letter.
-2. Lowercase the first remaining character.
-3. Preserve the remainder of the simple type name.
-4. Reject duplicate dependency types.
-5. Reject accessor-name collisions.
-6. Reject an incompatible existing or inherited method with the generated name.
+- raw `DependencyAccess`;
+- wildcards;
+- unresolved owner type variables;
+- parameterized types that cannot become class literals;
+- duplicate dependency types;
+- generated accessor-name collisions;
+- expanded access without `@DelegatesTo`;
+- generated type-name collisions.
 
-The processor must not create numbered names to conceal collisions.
+# Build Lowering Pattern
 
-## Invalid Expanded Declarations
+Expandable syntax is not legal Java after ordinary generic arity checking. The build runs source lowering before Javac.
 
-Reject:
+The command-line entry point is:
 
-- raw `DependencyAccess`
-- wildcard parameters
-- unresolved type variables that cannot produce class tokens
-- duplicate direct dependency types
-- generated accessor-name collisions
-- expansion on a class without `@DelegatesTo`
-- generated access types that cannot be registered or resolved
-
-# Authored Domain Bundles
-
-A one-parameter declaration is not expanded:
-
-```java
-DependencyAccess<PlayerRewardDependencies>
+```text
+org.tavall.dependency.access.DependencyAccessSourceLowererMain
+    --output <generated-source-directory>
+    --source <authored-source-directory>
 ```
 
-Bundles are ordinary domain DI contracts:
+The lowerer copies authored source into the generated source root, rewrites expanded consumers, and adds generated access classes. The consuming build compiles that generated source root instead of the authored Java root.
+
+JSR 269 processing cannot replace an already parsed class signature, so annotation processing alone is not the lowering mechanism.
+
+# Domain Bundle Pattern
+
+A domain bundle is an ordinary DI contract used as a one-parameter access token:
 
 ```java
 public interface PlayerRewardDependencies {
-
     IPlayerData playerData();
 
     IEconomyService economyService();
@@ -365,210 +266,105 @@ public interface PlayerRewardDependencies {
 }
 ```
 
-The planned bundle implementation is a normal managed concrete:
+Its implementation is a normal managed concrete and may itself use expanded dependency access.
 
-```java
-@DelegatesTo(PlayerRewardDependencies.class)
-public final class DefaultPlayerRewardDependencies
-        implements PlayerRewardDependencies, IDependencyAccess {
-}
-```
+Bundles are appropriate when dependencies form a reusable domain boundary or require authored component names. Bundles do not require reflective record hydration, bundle-specific factories, or separate lifecycle ownership.
 
-The bundle:
+# Replacement Pattern
 
-- receives normal metadata
-- receives normal lifecycle behavior
-- may be replaced through normal metadata replacement
-- resolves its member dependencies through `IDependencyMap`
-- may be reused by several consumers
-- may define authored names that avoid generated-name collisions
-
-Bundles must not require reflective record hydration or a bundle-specific factory.
-
-# Lifecycle and Replacement
-
-Metadata owns creation, initialization, lifecycle callbacks, and replacement.
-
-The planned replacement flow is:
+Replacement validates every token mapped to the metadata before publication:
 
 ```text
-replacement request
-    -> mapped metadata
-    -> validate supplier result
+replacement supplier
+    -> create replacement
+    -> verify every alias token
     -> initialize replacement
-    -> update metadata-owned instance
-    -> future map lookups observe replacement
+    -> publish metadata-owned instance
 ```
 
-Generated accessors and authored bundle methods perform live map lookup. They therefore observe the current dependency instance after replacement.
+An existing generated access object observes the replacement because its getter resolves through the map each time.
 
-Field-cached dependencies intentionally retain the instance captured at construction time and are governed by the access-style guide.
+Field-cached dependencies intentionally retain their captured instance and are governed by the access-style guide.
 
-Replacement must preserve shared-token identity: every token mapped to one metadata object observes the same replacement instance.
+# Lifecycle Pattern
 
-# Source Lowering and Processing
+Metadata owns:
 
-The feature requires pre-Javac source lowering because ordinary JSR 269 processing cannot mutate an already parsed class signature.
+- construction or direct binding;
+- pre-construction callbacks;
+- field injection;
+- post-construction callbacks;
+- replacement initialization;
+- lifecycle diagnostics and retry state.
 
-The build must run lowering before Java compilation.
+Multiple delegated tokens do not cause repeated construction or lifecycle execution.
 
-The planned source lowerer owns:
+A failed required injection or lifecycle callback fails registration rather than publishing a partially initialized dependency as healthy.
 
-- identifying `DependencyAccess<...>` declarations
-- distinguishing one-parameter and expanded modes
-- validating source-level declaration shape
-- rewriting the consumer to its final access token
-- preserving unrelated annotations, interfaces, imports, and source structure
+# Compatibility Surfaces
 
-The planned annotation processor owns:
+The following surfaces remain temporarily for downstream migration:
 
-- generating access layers
-- generating typed map-backed getters
-- applying the generated delegation declaration
-- producing deterministic compile diagnostics
-- avoiding duplicate output across rounds
+- `DependencyLoader` and `DependencyLoaderAccess` for tests, named scopes, and legacy composition;
+- `@DelegatesToInterface` as a deprecated annotation alias;
+- injectable marker interfaces for existing consumers;
+- reflective bundle classes for existing consumers;
+- grant annotations, metadata emitters, and the historical grant processor.
 
-Runtime grant annotations and generated metadata companions are not required when no runtime feature consumes them.
+New generated access does not use the loader or grant metadata path.
 
-# Migration and Deprecated Surfaces
-
-## Planned Removal
-
-Remove after downstream migration confirms there are no required consumers:
-
-- `IDependencyInjectableConcrete`
-- `IDependencyInjectableInterface`
-- `DependencyBundleFactory`
-- `IDependencyBundleFactory`
-- `IDependencyBundleAccess`
-- `IDependencyBundle`
-- reflective bundle hydration tests and examples
-
-## Planned Simplification
-
-Review and remove when no runtime consumer remains:
-
-- `@GrantDependencyAccess`
-- `@GrantedDependencyAccess`
-- `@GrantedDependencyAccesses`
-- grant metadata companions
-- runtime grant handlers and emitters
-
-## Compatibility
-
-- `@DelegatesToInterface` may remain deprecated while consumers migrate to `@DelegatesTo`.
-- `requireInstance` may remain as a deprecated alias while `getInstance` becomes canonical.
-- `DependencyLoader` may remain for tests, named scopes, and compatibility.
-- Compatibility surfaces must delegate to the same metadata-owned instance model.
-
-# Cross-System Integration
-
-Tavall DI exposes:
-
-- annotation-driven dependency registration
-- token-based instance lookup
-- metadata inspection
-- lifecycle and replacement behavior
-- generated or bundled typed access
-
-Consumer systems own:
-
-- which domain interfaces exist
-- which bundles group them
-- when platform hooks call DI-managed behavior
-- whether a dependency is required or optional
-- domain-specific failure recovery
-
-Tavall DI must remain usable by Java-only modules and platform adapters without importing those platforms.
+Compatibility removal requires downstream usage search and migration. Existing public classes are not deleted merely because the newer design is less embarrassing.
 
 # Failure Rules
 
-## Registration Failures
+## Registration
 
 Fail clearly for:
 
-- missing delegated tokens
-- unassignable delegated tokens
-- conflicting token ownership that cannot be resolved deterministically
-- null metadata passed through named registration APIs
-- an instance or replacement that cannot satisfy its token
+- null tokens or metadata through named APIs;
+- an additional delegated token not assignable from the concrete;
+- a bound instance incompatible with its token;
+- incompatible replacement across any shared alias token;
+- conflicting legacy and current delegation annotations.
 
-## Lookup Failures
+## Lookup
 
-`getInstance` must include the requested token in its diagnostic.
+`getInstance` includes the requested token in missing or incompatible binding diagnostics.
 
-`findInstance` may return `null` for intentional nullable lookup.
+`findInstance` returns `null` only for intentional nullable lookup.
 
-A mapped token whose metadata cannot expose a compatible instance is a broken binding, not a normal missing dependency.
+A mapped token whose metadata cannot expose a compatible instance is a broken binding, not an ordinary absence.
 
-## Processing Failures
+## Source Lowering
 
-Compile diagnostics must identify:
-
-- the consumer class
-- the invalid dependency parameter
-- the generated accessor name when relevant
-- the conflicting declaration or method
-- the corrective action when a bundle can resolve the ambiguity
-
-## Lifecycle Failures
-
-Failed initialization or replacement must not publish an uninitialized replacement as the active metadata-owned instance.
-
-Diagnostics must preserve the owning token, concrete type, and lifecycle phase.
+Diagnostics identify the owning consumer and invalid dependency declaration. Accessor collisions recommend an authored domain bundle rather than inventing numbered method names.
 
 ## Direct Map Mutation
 
-Direct inherited map mutation is allowed and may bypass lifecycle guarantees. Tavall DI does not pretend otherwise.
-
-Named lookup must still fail clearly when direct mutation leaves a token mapped to incompatible or incomplete metadata.
+Inherited map mutation may bypass lifecycle and validation. Named lookup must still fail clearly if raw mutation leaves incoherent metadata.
 
 # Production Verification
 
-## Current Production Foundations
+The active implementation includes:
 
-| Foundation | Evidence |
+| Behavior | Evidence |
 |---|---|
-| Multi-token delegation annotation | [`DelegatesTo.java`](../src/main/java/org/tavall/dependency/annotations/DelegatesTo.java) |
-| Authoritative concurrent metadata map | [`DependencyMap.java`](../src/main/java/org/tavall/dependency/maps/DependencyMap.java) |
-| Public map contract | [`IDependencyMap.java`](../src/main/java/org/tavall/dependency/maps/interfaces/IDependencyMap.java) |
-| Metadata ownership and lifecycle contract | [`IDependencyMetaData.java`](../src/main/java/org/tavall/dependency/metadata/interfaces/IDependencyMetaData.java) |
-| Shared access contract | [`IDependencyAccess.java`](../src/main/java/org/tavall/dependency/IDependencyAccess.java) |
-| Existing source-lowering foundation | [`DependencyAccessSourceLowerer.java`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowerer.java) |
-| Existing processor foundation | [`DependencyAccessGrantProcessor.java`](../src/main/java/org/tavall/dependency/processor/DependencyAccessGrantProcessor.java) |
+| Implicit concrete and multiple token delegation | [`DelegatesToTest`](../src/test/java/org/tavall/dependency/annotations/DelegatesToTest.java) |
+| Marker-free annotation scanning | [`DependencyInjectorHelper`](../src/main/java/org/tavall/dependency/injection/helpers/DependencyInjectorHelper.java) |
+| Metadata-owned typed lookup | [`DependencyMetaData`](../src/main/java/org/tavall/dependency/metadata/DependencyMetaData.java) |
+| Required and nullable map lookup | [`DependencyMap`](../src/main/java/org/tavall/dependency/maps/DependencyMap.java) |
+| Single-token runtime access | [`DependencyAccess`](../src/main/java/org/tavall/dependency/DependencyAccess.java) |
+| Direct expanded source generation | [`DependencyAccessSourceLowerer`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowerer.java) |
+| Build-facing lowering CLI | [`DependencyAccessSourceLowererMain`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowererMain.java) |
+| Unbounded generation and collision diagnostics | [`DependencyAccessSourceLowererTest`](../src/test/java/org/tavall/dependency/access/DependencyAccessSourceLowererTest.java) |
+| Generated runtime lookup and live replacement | [`DependencyAccessFiveDependencyIntegrationTest`](../src/test/java/org/tavall/dependency/access/DependencyAccessFiveDependencyIntegrationTest.java) |
 
-## Missing Required Behavior
+Java 25 validation passed on branch head `e99f287bc366f312d231dc70d48df603b3f4720e` with:
 
-The approved final contract is not complete until production code provides:
+```text
+clean
+check
+publishToMavenLocal
+```
 
-- metadata `getInstance(Class<T>)`
-- map `getInstance(Class<T>)`
-- map-backed `IDependencyAccess`
-- annotation-only scanner eligibility
-- unbounded expanded lowering and generation
-- single-parameter non-expanded access
-- generated final access registration
-- generated live getters
-- collision diagnostics
-- removal or migration of the reflective bundle stack
-- removal or migration of injectable marker requirements
-- build integration that runs lowering before Javac
-
-## Required Validation
-
-Tests must prove:
-
-- one-parameter bundle access
-- two, three, four, five, and ten-or-more expanded parameters
-- exact generated accessor names
-- duplicate and collision diagnostics
-- all delegated tokens share metadata and instance identity
-- map lookup returns the metadata-owned instance
-- replacement is visible through every token and generated getter
-- generated access does not cache dependencies
-- generated code does not use production loader lookup
-- direct inherited map operations remain available
-- invalid named registrations and replacements fail clearly
-- downstream Tavall consumers compile after marker, bundle, and loader migration
-
-A source file existing is not production verification. The relevant build and tests must pass against the active branch.
+Remaining work is downstream migration and eventual compatibility-surface removal, not implementation of the active access path.
