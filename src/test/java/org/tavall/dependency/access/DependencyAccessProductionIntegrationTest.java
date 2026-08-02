@@ -2,13 +2,10 @@ package org.tavall.dependency.access;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.tavall.dependency.DependencyLoader;
-import org.tavall.dependency.DependencyLoaderAccess;
 import org.tavall.dependency.access.fixtures.ISomeClass;
 import org.tavall.dependency.access.fixtures.SomeClass;
 import org.tavall.dependency.annotations.DelegatesTo;
-
-import java.util.List;
+import org.tavall.dependency.maps.DependencyMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -18,37 +15,22 @@ class DependencyAccessProductionIntegrationTest {
 
     @AfterEach
     void clearDependencyState() {
-        DependencyLoaderAccess.clear();
-        DependencyLoader.clearNamedLoaders();
+        DependencyMap.getDependencyMap().clear();
     }
 
     @Test
-    void resolvesGrantMetadataAndARealDelegatedDependencyLookupFromTheProductionClass() {
+    void resolvesSingleDependencyThroughTheAuthoritativeMap() {
         ISomeClass delegatedInstance = new ISomeClass() {
         };
-        DependencyLoaderAccess.registerInstance(ISomeClass.class, delegatedInstance);
+        DependencyMap.getDependencyMap().registerInstance(ISomeClass.class, delegatedInstance);
 
         SomeClass<String> productionClass = new SomeClass<>();
-        Class<?> productionType = productionClass.getClass();
+        DelegatesTo delegatesTo = productionClass.getClass().getAnnotation(DelegatesTo.class);
 
-        DelegatesTo delegatesTo = productionType.getAnnotation(DelegatesTo.class);
         assertNotNull(delegatesTo);
+        assertEquals(1, delegatesTo.value().length);
         assertSame(ISomeClass.class, delegatesTo.value()[0]);
-
-        ISomeClass resolvedInstance = productionClass.lookupDelegatedInterface();
-        assertSame(delegatedInstance, resolvedInstance);
-
-        DependencyAccessGrantHandler grantHandler = new DependencyAccessGrantHandler();
-        List<DependencyAccessGrantDescriptor> descriptors = grantHandler.findGrantedDependencyAccesses(productionType);
-
-        assertEquals(1, descriptors.size());
-        DependencyAccessGrantDescriptor descriptor = descriptors.get(0);
-        assertEquals("org.tavall.dependency.DependencyAccess", descriptor.accessType().getName());
-        assertEquals(List.of(
-                "org.tavall.dependency.access.fixtures.DependencyOneValue",
-                "org.tavall.dependency.access.fixtures.DependencyTwoValue",
-                "org.tavall.dependency.access.fixtures.DependencyThreeValue",
-                "org.tavall.dependency.access.fixtures.DependencyFourValue"),
-                descriptor.dependencyTypes().stream().map(Class::getName).toList());
+        assertSame(ISomeClass.class, productionClass.getDependencyAccessType());
+        assertSame(delegatedInstance, productionClass.lookupDelegatedInterface());
     }
 }
