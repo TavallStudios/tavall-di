@@ -2,116 +2,100 @@
 
 ## Purpose
 
-This document ranks the dependency access styles available in the current Tavall DI/runtime metadata system and explains which styles should be used in production code versus tests.
+This document ranks the supported Tavall DI access styles and explains when each style belongs in production code, tests, bootstrap code, or framework internals.
 
-The system already has the real core pieces:
+It is an access-style guide. The authoritative runtime contract lives in [`TAVALL_DI_SYSTEM_FINAL.md`](TAVALL_DI_SYSTEM_FINAL.md).
 
-- `DependencyMetaData<INTERFACE, INSTANCE>`
-- `IDependencyMetaData<INTERFACE, INSTANCE>`
-- `IDependencyInterface<INTERFACE>`
-- `IDependencyInstance<INSTANCE>`
-- `DependencyLoaderAccess`
-- scoped and default dependency loaders
+The core rule is:
+
+> `DependencyMap` and its mapped `IDependencyMetaData` remain the source of truth. Access styles are typed ergonomic layers over the same metadata-owned instances.
+
+No access style may create a second container, rebuild dependencies, or maintain a competing instance cache.
+
+---
+
+## Current Direction
+
+The target access model uses these core surfaces:
+
 - `@DelegatesTo`
-- `DependencySource`
-- `IContext<INTERFACE>`
-- class-token based dependency lookup
-- interface-first binding
-- dependency metadata as the mapped value
+- `DependencyAccess<...>`
+- `IDependencyAccess`
+- `IDependencyMap`
+- `DependencyMap`
+- `IDependencyMetaData`
+- generated access types for expanded generic declarations
+- authored domain bundles for grouped dependency boundaries
+- `DependencyLoader` only for tests, scoped fixtures, and compatibility during migration
 
-The important design rule is simple:
-
-> The metadata map stays the source of truth. Access styles are just ergonomic layers over the same registered dependency metadata.
-
-No competing container. No renamed architecture. No “surprise, it’s Spring now” nonsense wearing a Tavall hoodie.
-
----
-
-## Existing Static Loader Context
-
-`DependencyLoaderAccess` provides static access to the active dependency loader and supports both default-scope and named-scope operations.
-
-The important available operations are:
-
-```java
-DependencyLoaderAccess.findInstance(IType.class);
-DependencyLoaderAccess.findOptionalInstance(IType.class);
-DependencyLoaderAccess.requireInstance(IType.class);
-DependencyLoaderAccess.findMetaData(IType.class);
-DependencyLoaderAccess.isInstanceRegistered(IType.class);
-
-DependencyLoaderAccess.registerInstance(IType.class, instance);
-DependencyLoaderAccess.registerInstance(IType.class, supplier);
-DependencyLoaderAccess.registerInstance(IType.class, instance, DependencySource.TEST);
-DependencyLoaderAccess.registerInstance(IType.class, supplier, DependencySource.RUNTIME);
-
-DependencyLoaderAccess.replaceInstance(IType.class, Supplier);
-DependencyLoaderAccess.clear();
-```
-
-Scoped variants also exist:
-
-```java
-DependencyLoaderAccess.findInstance("test-scope", IType.class);
-DependencyLoaderAccess.requireInstance("test-scope", IType.class);
-DependencyLoaderAccess.findMetaData("test-scope", IType.class);
-DependencyLoaderAccess.registerInstance("test-scope", IType.class, instance);
-DependencyLoaderAccess.replaceInstance("test-scope", IType.class, Supplier);
-DependencyLoaderAccess.clear("test-scope");
-```
-
-This means the DI system already has a clean static bootstrap/test/runtime access layer. Production code can still prefer composed access interfaces and bundles, while tests can use static registration/clear operations directly for fixture setup.
+`IDependencyInjectableConcrete` and `IDependencyInjectableInterface` are not part of the target production style. `@DelegatesTo` is sufficient to declare a managed concrete and its tokens.
 
 ---
 
-## Core Design Model
+## Access Resolution Rule
 
-### Metadata Map
-
-The map shape is effectively:
+Every normal production lookup resolves through the real map:
 
 ```java
-Class<?> -> DependencyMetaData<INTERFACE, INSTANCE>
+DependencyMap.getDependencyMap().getInstance(IPlayerData.class);
 ```
 
-The key is usually an interface type:
+The map finds the metadata mapped to the token, and metadata returns the instance it owns:
+
+```text
+dependency token
+    -> DependencyMap
+    -> IDependencyMetaData
+    -> metadata-owned instance
+```
+
+Multiple delegated tokens may point to the same metadata object:
+
+```text
+IPlayerData.class
+IPlayerWallet.class
+PlayerData.class
+    -> same metadata
+    -> same PlayerData instance
+```
+
+Generated accessors and authored bundles must use this path. They must not use `DependencyLoaderAccess` for production lookup.
+
+---
+
+## `DependencyAccess` Modes
+
+`DependencyAccess` has two authoring modes.
+
+### Single-Parameter Mode
 
 ```java
-IPlayerData.class -> DependencyMetaData<IPlayerData, PlayerData>
+DependencyAccess<PlayerRewardDependencies>
 ```
 
-The metadata value knows the interface side, instance side, lifecycle state, source context, role, retry state, source metadata, and underlying instance.
+One parameter is not expanded. It is resolved directly and is normally an authored domain bundle.
 
-### Metadata Shape
+A normal single dependency token is technically valid as well, although direct map access may be clearer when no access surface is needed.
 
-Current metadata shape:
+### Expanded Mode
 
 ```java
-public class DependencyMetaData<INTERFACE, INSTANCE>
-        implements IDependencyMetaData<INTERFACE, INSTANCE> {
-}
+DependencyAccess<
+        IPlayerData,
+        IEconomyService,
+        IRewardAuditLogger
+>
 ```
 
-Important fields:
+Two or more parameters activate generated expansion.
 
-```java
-private Set<INTERFACE> subDependencies = new HashSet<>();
-private int priority;
-private int depth;
-private DependencyRole dependencyRole = DependencyRole.ISOLATED;
-private final Map<LifecycleType, Method> lifecycleMethods = new EnumMap<>(LifecycleType.class);
-private final Map<LifecycleType, Boolean> lifecycleSuccess = new EnumMap<>(LifecycleType.class);
-private int retryCount;
-private IContext<INTERFACE> sourceContext;
-private Supplier<INSTANCE> dependencySupplier;
-private IDependencyInterface<INTERFACE> wrappedInterface;
-private IDependencyInstance<INSTANCE> wrappedInstance;
-private Class<? extends INTERFACE> primaryInterfaceType;
-private Class<? extends INSTANCE> concreteType;
-private INSTANCE dependencyInstance;
-```
+The processor supports arbitrary arity. Four direct dependencies is an architecture preference, not a compiler limit:
 
-That means access styles should not rebuild the dependency. They should route to the already-registered metadata and pull the correct typed side.
+- Two to four direct types are the normal expanded style.
+- Five or more direct types remain valid.
+- Review should prefer a domain bundle when the larger set forms a coherent boundary.
+
+The framework should not confuse style guidance with a technical incapacity it does not have.
 
 ---
 
@@ -119,17 +103,17 @@ That means access styles should not rebuild the dependency. They should route to
 
 | Rank | Style | Production Use | Why |
 |---:|---|---|---|
-| 1 | Dependency Bundle / Mini-Context | First-class | Defines the dependency contract as a reusable record. Best as the declared boundary for handlers/services. |
-| 2 | Bundle + Named Getters | First-class | Uses the bundle contract, then adds handler-local getter names for cleaner business logic. Best implementation style for larger handlers. |
-| 3 | Named Getter Lookup | First-class | Best everyday style for small and medium classes. |
-| 4 | Primitive Lookup | Supported | Best for one-off calls or small utilities. Too noisy if overused. |
-| 5 | Local Method Variable | Supported | Good when dependency is only needed inside one method. |
-| 6 | Field-Cached Dependency | Conditional | Good for stable hot paths. Risky with replacement/reload behavior. |
-| 7 | Direct Metadata Access | Framework/Internal | Use for lifecycle, concrete instance, verification, diagnostics, graphing. |
-| 8 | Wrapped Interface Access | Framework/Internal | Use when wrapper identity or interface binding metadata matters. |
-| 9 | Wrapped Instance Access | Framework/Internal | Use when concrete wrapper and concrete-only methods are intentionally needed. |
-| 10 | Static Loader Direct Access | Bootstrap/Test/Infrastructure | Great for bootstrapping and tests. Avoid spraying it across domain code. |
-| 11 | Optional Lookup | Boundary/Test | Useful for conditional behavior and assertions. Avoid hiding missing required deps in production. |
+| 1 | Expanded `DependencyAccess` + named getters | First-class | Best daily style for a small, readable dependency set. |
+| 2 | Domain bundle + named getters | First-class | Best for larger or reusable domain boundaries. |
+| 3 | Direct expanded or bundle access | First-class | Good when the method is already clear without local getters. |
+| 4 | Direct `IDependencyMap#getInstance` | Supported | Best for infrastructure, one-off lookups, and framework composition. |
+| 5 | Local method variable | Supported | Keeps method-scoped dependency use local. |
+| 6 | Field-cached dependency | Conditional | Captures an instance and may not follow replacement. |
+| 7 | Direct metadata access | Framework/Internal | Lifecycle, diagnostics, verification, graphing, and replacement tooling. |
+| 8 | Wrapped interface access | Framework/Internal | Binding and wrapper verification. |
+| 9 | Wrapped concrete access | Framework/Internal | Concrete identity and lifecycle tooling. |
+| 10 | `DependencyLoader` access | Test/Compatibility | Scoped fixtures and legacy migration, not normal production lookup. |
+| 11 | Optional lookup | Boundary/Test | Only for dependencies that are genuinely optional. |
 
 ---
 
@@ -137,398 +121,332 @@ That means access styles should not rebuild the dependency. They should route to
 
 | Rank | Style | Test Use | Why |
 |---:|---|---|---|
-| 1 | Static Loader Registration | First-class test setup | `registerInstance`, `clear`, scoped registration, and `DependencySource.TEST` make tests deterministic. |
-| 2 | Dependency Bundle Access | First-class integration test target | Bundles are first-class production, so they need first-class tests. |
-| 3 | Named Getter Lookup | First-class test target | Verifies normal service style. |
-| 4 | Primitive Lookup | First-class test target | Verifies the base primitive all other styles depend on. |
-| 5 | Direct Metadata Access | Strong test target | Validates metadata identity, lifecycle state, role, source context, concrete/interface mapping. |
-| 6 | Wrapped Interface / Instance Access | Strong test target | Validates wrapper correctness and instance identity. |
-| 7 | Replacement Access | Conditional | Test when replacement/reload is supported. |
-| 8 | Field-Cached Access | Edge test | Should prove construction-time capture behavior. |
-| 9 | Optional Lookup | Useful for missing-dependency tests | Good for fallback paths. |
-| 10 | Scoped Loader Access | Required if scopes are used | Prevents cross-test pollution and proves scoped isolation. |
+| 1 | Map or loader fixture registration | First-class setup | Creates deterministic test bindings and scopes. |
+| 2 | Expanded `DependencyAccess` | First-class target | Verifies generated access and live map resolution. |
+| 3 | Domain bundle access | First-class target | Verifies authored dependency boundaries. |
+| 4 | Direct map lookup | First-class target | Verifies the primitive all higher styles use. |
+| 5 | Metadata access | Strong target | Verifies ownership, identity, lifecycle, and replacement. |
+| 6 | Wrapper access | Strong target | Verifies interface and concrete wrapper correctness. |
+| 7 | Replacement access | Required where supported | Proves live getters observe new metadata-owned instances. |
+| 8 | Field-cached access | Edge case | Proves intentional construction-time capture. |
+| 9 | Optional lookup | Missing-dependency tests | Verifies legitimate fallback behavior. |
+| 10 | Scoped loader access | Compatibility/scoped tests | Prevents fixture pollution while loader scopes remain supported. |
 
 ---
 
-# Style 1: Dependency Bundle / Mini-Context
+# Style 1: Expanded `DependencyAccess` with Named Getters
 
 ## Production Rank
 
-**#1: First-class production dependency declaration style.**
-
-Bundles should be the preferred way to declare the dependency set for handlers/services that need multiple dependencies.
-
-This style is about the **dependency contract**, not necessarily the prettiest handler method body.
-
-## Shape
-
-```java
-// This record is the mini-context for player reward logic.
-// It declares every dependency the reward handler is allowed to use.
-public record PlayerRewardDependencies(
-        IPlayerData playerData,
-        IEconomyService economyService
-) implements IDependencyBundle {
-}
-```
-
-```java
-@DelegatesTo(IPlayerRewardHandler.class)
-public final class PlayerRewardHandler
-        implements IPlayerRewardHandler, IDependencyBundleAccess<PlayerRewardDependencies> {
-
-    @Override
-    public void handlePlayerReward(long amount) {
-        // Direct bundle access is valid when the method is small
-        // and the dependency names are already obvious.
-        dependencies().playerData().addCoins(amount);
-        dependencies().economyService().recordTransaction(amount);
-    }
-}
-```
-
-## Why It Wins
-
-The bundle is a mini-context. It declares what the handler needs without forcing slot names like `dependencyOne()`.
-
-```java
-// The record component names become the dependency names.
-dependencies().playerData();
-dependencies().economyService();
-```
-
-This is readable, typed, and enforceable.
-
-## Use When
-
-- A handler/service needs several dependencies.
-- You want the dependency boundary visible.
-- You want validation tooling.
-- You want dependency graphing.
-- You want clean domain-level dependency contracts.
-- You want to avoid scattered lookup calls everywhere.
-
-## Avoid When
-
-- The class only needs one dependency once.
-- The bundle would have only one dependency and adds ceremony.
-- The code is tiny bootstrapping glue.
-
-## Test Coverage Needed
-
-Test that:
-
-- record components hydrate from the DI metadata map
-- each component returns the registered interface-facing instance
-- missing bundle component fails clearly
-- non-record bundle types fail clearly
-- bundle access works inside a handler
-- bundle access works with named getters
-
-# Style 2: Bundle + Named Getters
-
-## Production Rank
-
-**#2: First-class production implementation style.**
-
-This style still uses the bundle from Style 1, but the handler adds small getters so business methods read cleanly.
-
-This is the preferred handler implementation style when the class has multiple methods or repeated dependency usage.
+**#1: Default production style for a small dependency set.**
 
 ## Shape
 
 ```java
 @DelegatesTo(IPlayerRewardHandler.class)
 public final class PlayerRewardHandler
-        implements IPlayerRewardHandler, IDependencyBundleAccess<PlayerRewardDependencies> {
+        implements IPlayerRewardHandler,
+                   DependencyAccess<
+                           IPlayerData,
+                           IEconomyService,
+                           IRewardAuditLogger
+                   > {
 
     private IPlayerData getPlayerData() {
-        // This does not create or cache a dependency.
-        // It only gives the bundle component a handler-local name.
-        return dependencies().playerData();
+        return getInstance().playerData();
     }
 
     private IEconomyService getEconomyService() {
-        // Same dependency, same bundle, cleaner call site.
-        return dependencies().economyService();
+        return getInstance().economyService();
+    }
+
+    private IRewardAuditLogger getRewardAuditLogger() {
+        return getInstance().rewardAuditLogger();
     }
 
     @Override
     public void handlePlayerReward(long amount) {
-        // Business logic reads through named dependency getters.
         getPlayerData().addCoins(amount);
         getEconomyService().recordTransaction(amount);
+        getRewardAuditLogger().recordReward(amount);
+    }
+}
+```
+
+## Runtime Meaning
+
+The authored generic declaration is lowered to the final generated access type. `getInstance()` resolves that generated access object from `DependencyMap`. Each generated getter resolves its dependency through `DependencyMap#getInstance(Class<?>)`.
+
+The handler does not receive a handler-specific zero-argument `getInstance()` implementation. The method belongs to the lowered `DependencyAccess<ACCESS>` contract.
+
+## Why It Wins
+
+- The dependency boundary is visible on the class declaration.
+- Business methods use meaningful names.
+- No dependency fields are required.
+- Every call can observe the current metadata-owned instance.
+- Generated code solves Java's generic-arity problem without becoming a second runtime.
+
+## Use When
+
+- The class has a small dependency set.
+- Dependencies are used across several methods.
+- Direct dependency names are clearer than introducing a domain bundle.
+- Replacement or reload should be visible through future getter calls.
+
+## Style Boundary
+
+Two to four direct dependencies is the preferred range.
+
+More than four remains supported. Introduce a bundle when the dependency set represents one domain boundary or the declaration becomes harder to understand than the behavior it supports.
+
+## Test Coverage Needed
+
+- two, three, four, five, and ten-or-more direct parameters compile
+- generated getter names are correct
+- getters return metadata-owned instances
+- replacement is visible without recreating the consumer
+- no generated getter calls `DependencyLoaderAccess`
+- duplicate generated names fail clearly
+
+---
+
+# Style 2: Domain Bundle with Named Getters
+
+## Production Rank
+
+**#2: Default production style for larger or reusable dependency boundaries.**
+
+## Bundle Contract
+
+Bundles are normal DI contracts, not reflective records hydrated by a special factory:
+
+```java
+public interface PlayerRewardDependencies {
+
+    IPlayerData playerData();
+
+    IEconomyService economyService();
+
+    IRewardAuditLogger rewardAuditLogger();
+
+    IPlayerRewardResultBuilder rewardResultBuilder();
+}
+```
+
+## Bundle Implementation
+
+```java
+@DelegatesTo(PlayerRewardDependencies.class)
+public final class DefaultPlayerRewardDependencies
+        implements PlayerRewardDependencies, IDependencyAccess {
+
+    @Override
+    public IPlayerData playerData() {
+        return getDependencyMap().getInstance(IPlayerData.class);
     }
 
     @Override
-    public long getPlayerCoins() {
-        // No local variables or fields needed.
-        return getPlayerData().getCoins();
+    public IEconomyService economyService() {
+        return getDependencyMap().getInstance(IEconomyService.class);
+    }
+
+    @Override
+    public IRewardAuditLogger rewardAuditLogger() {
+        return getDependencyMap().getInstance(IRewardAuditLogger.class);
+    }
+
+    @Override
+    public IPlayerRewardResultBuilder rewardResultBuilder() {
+        return getDependencyMap().getInstance(IPlayerRewardResultBuilder.class);
+    }
+}
+```
+
+## Consumer
+
+```java
+@DelegatesTo(IPlayerRewardHandler.class)
+public final class PlayerRewardHandler
+        implements IPlayerRewardHandler,
+                   DependencyAccess<PlayerRewardDependencies> {
+
+    private IPlayerData getPlayerData() {
+        return getInstance().playerData();
+    }
+
+    private IEconomyService getEconomyService() {
+        return getInstance().economyService();
     }
 }
 ```
 
 ## Why It Wins
 
-The bundle declares the dependency set:
+The bundle names a coherent domain boundary and can be reused by several behaviors. It is registered, instantiated, replaced, and resolved through the same metadata path as every other dependency.
 
-```java
-// The class declares its mini-context once.
-IDependencyBundleAccess<PlayerRewardDependencies>
-```
+There is no:
 
-The getters give readable method bodies:
-
-```java
-// The getter names describe the dependency being accessed.
-getPlayerData().addCoins(amount);
-```
-
-No dependency fields. No local dependency variables. No facade methods. No string invocation. Just naming the dependencies already inside the bundle.
+- `DependencyBundleFactory`
+- reflective record construction
+- bundle-only instance cache
+- alternate bundle lifecycle
 
 ## Use When
 
-- A handler has several methods using the same dependencies.
-- You want method bodies to read cleanly.
-- You want the bundle as the formal dependency contract.
-- You do not want cached dependency fields.
-- You want `@DelegatesTo` to make the handler itself DI-managed.
+- The class usually needs more than four dependencies.
+- Several classes share the same dependency boundary.
+- The dependency group deserves a stable domain name.
+- Explicit authored component names avoid generated-name collisions.
+- The bundle itself benefits from targeted tests or documentation.
 
 ## Avoid When
 
-- The class uses each dependency once.
-- The handler is so small that `dependencies().playerData()` is already clear.
+- The bundle would contain unrelated services.
+- The class has only a couple of obvious dependencies.
+- The bundle exists solely to satisfy a style number without improving the domain model.
 
 ## Test Coverage Needed
 
-Test that:
-
-- getters return bundle components
-- getters expose real interface methods
-- no dependency state is cached in fields
-- replacement behavior follows bundle policy if replacement is supported
-
-# Style 3: Named Getter Lookup
-
-## Production Rank
-
-**#3: First-class daily style.**
-
-This is the best style for classes that do not need a formal bundle.
-
-## Shape
-
-```java
-public final class PlayerRewardHandler implements IDependencyLookupAccess {
-
-    private IPlayerData getPlayerData() {
-        return dependency(IPlayerData.class);
-    }
-
-    private IEconomyService getEconomyService() {
-        return dependency(IEconomyService.class);
-    }
-
-    public void handlePlayerReward(long amount) {
-        getPlayerData().addCoins(amount);
-        getEconomyService().recordTransaction(amount);
-    }
-}
-```
-
-## Why It Works
-
-It keeps access readable while still using the metadata map.
-
-```java
-getPlayerData()
-```
-
-is just a meaningful name for:
-
-```java
-dependency(IPlayerData.class)
-```
-
-No method facades. No fields. No dependency constructor arguments. No “which slot was this again?” nonsense.
-
-## Use When
-
-- The class has a few dependencies.
-- You want readable method bodies.
-- You do not need a formal bundle record.
-- Dependencies should resolve live from the map instead of being cached.
-
-## Avoid When
-
-- A class has a large dependency set.
-- You want to enforce a strict dependency contract.
-- You need dependency graph tooling from a bundle record.
-
-## Test Coverage Needed
-
-Test that:
-
-- getter returns dependency from map
-- getter can call real interface methods
-- getter sees replacement if replacement is supported
-- missing dependency fails clearly
+- one-parameter `DependencyAccess<Bundle>` does not activate expansion
+- `getInstance()` returns the metadata-owned bundle
+- bundle getters resolve current metadata-owned dependencies
+- bundle replacement follows normal DI replacement behavior
+- no reflective bundle factory is invoked
 
 ---
 
-# Style 4: Primitive Lookup
+# Style 3: Direct Expanded or Bundle Access
 
 ## Production Rank
 
-**#4: Supported production style.**
+**#3: First-class for compact methods.**
 
-This is the base primitive every other lookup style builds on.
+## Expanded Shape
+
+```java
+getInstance().playerData().addCoins(amount);
+getInstance().economyService().recordTransaction(amount);
+```
+
+## Bundle Shape
+
+```java
+getInstance().playerData().addCoins(amount);
+getInstance().rewardAuditLogger().recordReward(amount);
+```
+
+The call site is identical. The declaration decides whether `getInstance()` returns a generated access type or an authored bundle.
+
+## Use When
+
+- The method is short.
+- The dependency getter already reads clearly.
+- Adding a private getter would merely repeat the generated or authored component name.
+
+## Avoid When
+
+- Long chains obscure business logic.
+- Several methods repeatedly use the same dependencies.
+- A local name communicates domain intent better.
+
+---
+
+# Style 4: Direct Map Lookup
+
+## Production Rank
+
+**#4: Supported production primitive.**
 
 ## Shape
 
 ```java
-dependency(IPlayerData.class).addCoins(500L);
-dependency(IEconomyService.class).recordTransaction(500L);
+IPlayerData playerData =
+        DependencyMap.getDependencyMap().getInstance(IPlayerData.class);
 ```
 
-## Why It Exists
+Or through `IDependencyAccess`:
 
-It is flexible and minimal. It should be available everywhere a class has dependency lookup access.
+```java
+IPlayerData playerData =
+        getDependencyMap().getInstance(IPlayerData.class);
+```
 
 ## Use When
 
-- You need a dependency once.
-- You are writing small glue code.
-- You are prototyping a handler before giving dependencies names.
-- You are building another access layer.
+- Infrastructure needs a one-off dependency.
+- A generated access declaration would add more ceremony than clarity.
+- Framework code is composing metadata or runtime services.
+- Bootstrap code needs the authoritative map directly.
 
 ## Avoid When
 
-- Calls repeat often.
-- The method becomes noisy with class tokens.
-- The class has many dependencies.
-- You want a formal dependency contract.
+- Repeated class-token calls hide a stable dependency boundary.
+- A handler would become easier to read with expanded access or a bundle.
+- The caller is bypassing metadata APIs to manipulate raw mapped values unintentionally.
 
-## Test Coverage Needed
-
-Test that:
-
-- dependency resolves the registered interface
-- real methods can be called
-- missing dependency fails clearly
-- scoped lookup works when scope is provided
+Direct map mutation remains available because `DependencyMap` extends `ConcurrentHashMap`. Prefer named APIs when metadata and lifecycle coherence matter. Raw `put`, `remove`, `compute`, and `clear` are deliberate low-level operations, not forbidden magic.
 
 ---
 
-# Style 5: Local Method Variable
+# Style 5: Local Method Variables
 
 ## Production Rank
 
-**#5: Supported style.**
-
-Local variable access is clean when a dependency is method-scoped.
-
-## Shape
+**#5: Supported for method-scoped use.**
 
 ```java
 public void handlePlayerReward(long amount) {
-    IPlayerData playerData = dependency(IPlayerData.class);
-    IEconomyService economyService = dependency(IEconomyService.class);
+    IPlayerData playerData =
+            getDependencyMap().getInstance(IPlayerData.class);
+    IEconomyService economyService =
+            getDependencyMap().getInstance(IEconomyService.class);
 
     playerData.addCoins(amount);
     economyService.recordTransaction(amount);
 }
 ```
 
-## Why It Exists
-
-It keeps the lookup near usage and avoids class-level getter bloat.
-
 ## Use When
 
-- The dependency is only used in one method.
-- You want a readable local name.
-- The method is a contained workflow.
-- You do not need the dependency elsewhere in the class.
+- Dependencies are used only in one method.
+- A local name improves readability.
+- The method intentionally captures the current instance once.
 
-## Avoid When
+## Tradeoff
 
-- Several methods need the same dependency.
-- The dependency is part of the handler’s core identity.
-- You want a bundle contract.
-
-## Test Coverage Needed
-
-Test that:
-
-- local variables resolve typed dependencies
-- real methods work
-- multiple local dependencies resolve correctly
-- local variable captures the instance at lookup time
+A local variable observes the instance at lookup time. A later replacement during the same method does not alter the local reference.
 
 ---
 
-# Style 6: Field-Cached Dependency
+# Style 6: Field-Cached Dependencies
 
 ## Production Rank
 
-**#6: Conditional production style.**
-
-Field-cached access is allowed, but it has lifecycle risk.
-
-## Shape
+**#6: Conditional.**
 
 ```java
-public final class PlayerRewardHandler implements IDependencyLookupAccess {
+public final class PlayerRewardHandler implements IDependencyAccess {
 
-    private final IPlayerData playerData = dependency(IPlayerData.class);
-    private final IEconomyService economyService = dependency(IEconomyService.class);
-
-    public void handlePlayerReward(long amount) {
-        playerData.addCoins(amount);
-        economyService.recordTransaction(amount);
-    }
+    private final IPlayerData playerData =
+            getDependencyMap().getInstance(IPlayerData.class);
 }
 ```
 
-## Why It Exists
-
-It is short and fast. It avoids repeated map lookup.
-
-## Main Tradeoff
-
-A field captures the dependency at construction time.
-
-A getter resolves from the map each time.
-
-```java
-private final IPlayerData playerData = dependency(IPlayerData.class);
-```
-
-means the field does not automatically follow replacement/reload unless the instance itself is a proxy or mutable wrapper.
-
 ## Use When
 
-- Dependency graph is stable after boot.
-- Handler is created after DI hydration.
-- Dependency replacement is not expected.
-- You are in a hot path and lookup overhead matters.
+- Construction occurs after DI hydration.
+- The dependency graph is stable.
+- Construction-time capture is intentional.
+- A measured hot path justifies avoiding repeated lookup.
 
 ## Avoid When
 
-- Dependency replacement/retry/reload is supported.
-- Tests need replacement semantics.
-- Handler may be constructed before DI hydration.
-- You want all reads to reflect the current map.
+- Replacement, reload, or retry is supported.
+- The object may be created before dependency initialization.
+- Tests expect live replacement semantics.
 
-## Test Coverage Needed
-
-Test that:
-
-- field can call real methods
-- field captures construction-time instance
-- replacement behavior is explicitly documented/tested
-- construction before hydration fails clearly
+A field caches the instance. Expanded accessors and bundle methods normally resolve live from the map.
 
 ---
 
@@ -536,63 +454,25 @@ Test that:
 
 ## Production Rank
 
-**#7: Framework/internal style.**
-
-Metadata access is powerful, but normal domain logic should not live here.
-
-## Shape
+**#7: Framework and internal tooling.**
 
 ```java
-DependencyMetaData<IPlayerData, PlayerData> playerDataMetaData =
-        dependencyMetaData(IPlayerData.class);
-
-playerDataMetaData.dependencyInstance().resetCoins();
+IDependencyMetaData<?, ?> metadata =
+        DependencyMap.getDependencyMap().findMetaData(IPlayerData.class);
 ```
 
-## Why It Exists
+Metadata access is appropriate for:
 
-Metadata access gives the full dependency record:
-
-- interface type
-- concrete type
-- wrapped interface
-- wrapped instance
+- lifecycle execution
+- replacement
+- graph inspection
+- diagnostics
+- concrete/interface identity checks
 - source context
-- dependency role
-- priority
-- depth
-- lifecycle methods
-- lifecycle success state
-- retry count
-- supplier
-- sub-dependencies
+- role, depth, priority, and retry state
+- testing that multiple tokens share metadata identity
 
-## Use When
-
-- building dependency tooling
-- validating graph state
-- inspecting lifecycle state
-- resolving concrete-only behavior intentionally
-- debugging dependency source/context
-- writing tests for metadata correctness
-
-## Avoid When
-
-- normal service logic only needs interface methods
-- you are bypassing interface-first design for convenience
-- concrete access becomes the default path
-
-## Test Coverage Needed
-
-Test that:
-
-- metadata lookup returns mapped value
-- primary interface type is correct
-- concrete type is correct
-- dependency instance identity is correct
-- lifecycle maps are accessible
-- source context is correct
-- role/depth/priority are correct
+Normal domain behavior should request the dependency instance, not conduct a full autopsy on its registration record.
 
 ---
 
@@ -600,152 +480,61 @@ Test that:
 
 ## Production Rank
 
-**#8: Framework/internal style.**
+**#8: Framework and verification.**
 
-## Shape
+Use the interface wrapper when wrapper identity, declared token information, or interface-side metadata matters.
 
-```java
-dependencyMetaData(IPlayerData.class)
-        .wrappedInterface()
-        .dependencyInterface()
-        .addCoins(500L);
-```
-
-## Why It Exists
-
-This gives access to the interface wrapper, not just the raw interface instance.
-
-## Use When
-
-- verifying interface binding
-- testing wrapper correctness
-- building diagnostic tools
-- checking interface-side metadata
-- validating `@DelegatesTo` behavior
-
-## Avoid When
-
-- normal domain logic just needs `IPlayerData`
-- the wrapper chain makes code noisy
-- you are bypassing simpler access styles
-
-## Test Coverage Needed
-
-Test that:
-
-- wrapper exists
-- wrapper interface type matches key
-- wrapper returns same instance as primitive lookup
-- real interface methods work through wrapper
+Avoid wrapper chains in ordinary feature code when `getInstance(IType.class)` already supplies the required API.
 
 ---
 
-# Style 9: Wrapped Instance Access
+# Style 9: Wrapped Concrete Access
 
 ## Production Rank
 
-**#9: Framework/internal style.**
+**#9: Framework and verification.**
 
-## Shape
+Use the concrete wrapper when:
 
-```java
-dependencyMetaData(IPlayerData.class)
-        .wrappedInstance()
-        .dependencyInstance()
-        .resetCoins();
-```
+- lifecycle tooling needs the concrete type
+- tests assert concrete identity
+- a framework operation intentionally requires concrete-only behavior
 
-## Why It Exists
-
-This gives access to the concrete wrapper and concrete instance.
-
-## Use When
-
-- concrete-only methods are intentionally needed
-- lifecycle tooling needs the real instance
-- tests need to assert concrete identity
-- diagnostics need concrete type/source
-
-## Avoid When
-
-- interface methods are enough
-- normal service logic starts depending on concrete types
-- concrete leakage would weaken interface-first design
-
-## Test Coverage Needed
-
-Test that:
-
-- wrapper exists
-- wrapper concrete type is correct
-- concrete instance identity is correct
-- concrete-only methods work
-- wrapper instance matches metadata instance
+Concrete access should not quietly become the default because someone discovered an implementation method that was easier than fixing the interface.
 
 ---
 
-# Style 10: Static Loader Direct Access
+# Style 10: `DependencyLoader` Access
 
 ## Production Rank
 
-**#10: Bootstrap/test/infrastructure style.**
+**#10: Tests, scopes, and compatibility.**
 
-`DependencyLoaderAccess` is extremely useful, but domain code should not spray static calls everywhere unless that is the intended access layer for that module.
+`DependencyLoader` and `DependencyLoaderAccess` may remain while scoped tests and legacy consumers migrate.
 
-## Shape
-
-```java
-IPlayerData playerData = DependencyLoaderAccess.requireInstance(IPlayerData.class);
-playerData.addCoins(500L);
-```
+## Valid Uses
 
 ```java
-DependencyLoaderAccess.registerInstance(IPlayerData.class, new PlayerData(), DependencySource.RUNTIME);
+DependencyLoaderAccess.registerInstance(
+        IPlayerData.class,
+        new TestPlayerData(),
+        DependencySource.TEST
+);
 ```
 
 ```java
 DependencyLoaderAccess.clear("test-scope");
 ```
 
-## Why It Exists
+Use loader access for:
 
-It gives the system a direct global/static loader API for bootstrap, tests, scopes, replacements, and metadata access.
+- test fixture registration
+- named test scopes
+- legacy compatibility
+- migration bridges
+- loader-specific behavior that has not yet moved to the map
 
-## Use In Production When
-
-- bootstrapping the dependency graph
-- registering core infrastructure
-- bridging old code into the DI system
-- writing platform adapter glue
-- implementing access interfaces internally
-
-## Avoid In Production When
-
-- normal handlers/services can use `IDependencyLookupAccess`
-- bundle access is available
-- static calls would hide dependency contracts
-
-## Use In Tests When
-
-- registering fixtures
-- clearing scopes
-- checking optional/missing dependency behavior
-- replacing instances
-- asserting metadata registration
-- building scoped test environments
-
-## Test Coverage Needed
-
-Test that:
-
-- default scope registration works
-- named scope registration works
-- requireInstance fails clearly
-- findOptionalInstance returns empty when missing
-- findMetaData returns registered metadata
-- replaceInstance updates mapped instance
-- clear resets scope
-- DependencySource values are preserved in metadata when supported
+Generated production accessors, authored bundles, and normal handlers should resolve through `IDependencyMap`.
 
 ---
 
@@ -753,51 +542,22 @@ Test that:
 
 ## Production Rank
 
-**#11: Boundary/test style.**
+**#11: Boundary and tests only.**
 
-## Shape
+Optional lookup is valid when absence is part of the contract:
 
-```java
-Optional<IPlayerData> playerData =
-        DependencyLoaderAccess.findOptionalInstance(IPlayerData.class);
-```
+- an optional module is not installed
+- a platform adapter may be unavailable
+- a fallback is intentional
+- a test is asserting missing state
 
-## Why It Exists
-
-Optional lookup is useful when a dependency is genuinely optional.
-
-## Use When
-
-- a feature module may not be installed
-- a platform adapter may not be active
-- fallback behavior is legitimate
-- tests need missing-dependency assertions
-
-## Avoid When
-
-- the dependency is required for correctness
-- optional lookup hides a boot failure
-- the code silently skips important behavior
-
-## Test Coverage Needed
-
-Test that:
-
-- optional is present when dependency exists
-- optional is empty when missing
-- optional behavior does not hide required dependency failures
+Do not turn required dependencies into optional values to hide boot failures. Missing required dependencies should fail at the lookup boundary with the token and owning access type in the diagnostic.
 
 ---
 
-# `@DelegatesTo` Ranking
+# `@DelegatesTo` Registration Style
 
-## Production Rank
-
-**Core registration/verification feature.**
-
-This annotation should be treated as the deterministic binding declaration.
-
-## Shape
+`@DelegatesTo` is the authoritative declaration for managed concretes:
 
 ```java
 @DelegatesTo(IPlayerData.class)
@@ -805,194 +565,90 @@ public final class PlayerData implements IPlayerData {
 }
 ```
 
-Multi-interface:
+Multiple assignable tokens may share the same metadata and instance:
 
 ```java
 @DelegatesTo({
         IPlayerData.class,
-        IPlayerWallet.class
+        IPlayerWallet.class,
+        PlayerData.class
 })
-public final class PlayerData implements IPlayerData, IPlayerWallet {
+public final class PlayerData
+        implements IPlayerData, IPlayerWallet {
 }
 ```
 
-## Why It Matters
+The annotation replaces production reliance on:
 
-It avoids repeated hierarchy crawling and makes bindings explicit.
+- `IDependencyInjectableConcrete`
+- `IDependencyInjectableInterface`
+- `@DelegatesToInterface` for new code
 
-That helps with:
+The deprecated annotation may remain temporarily as a compatibility alias.
 
-- performance
-- deterministic registration
-- cleaner metadata map construction
-- better dependency verification
-- interface-first architecture
-- multi-interface concrete binding
+Registration must reject:
 
-## Use When
-
-- any concrete should be bound into DI
-- a concrete implements multiple dependency interfaces
-- the system should verify interface-to-concrete mapping
-- dependency graph tooling needs clean bindings
-
-## Test Coverage Needed
-
-Test that:
-
-- single-interface binding works
-- multi-interface binding works
-- concrete actually supports annotated interfaces
-- duplicate binding behavior is deterministic
-- annotation path is preferred over hierarchy scanning where applicable
+- missing tokens
+- tokens not assignable from the concrete
+- incompatible stored or replacement instances
+- conflicting declarations that cannot produce deterministic ownership
 
 ---
 
-# Recommended Production Defaults
+# Accessor Naming
 
-## For handlers with several dependencies
+Generated accessor names derive from type names:
 
-Use bundle + getters.
+| Dependency Type | Generated Accessor |
+|---|---|
+| `IPlayerData` | `playerData()` |
+| `IEconomyService` | `economyService()` |
+| `IRewardAuditLogger` | `rewardAuditLogger()` |
+| `PlayerProfileCache` | `playerProfileCache()` |
 
-```java
-@DelegatesTo(IPlayerRewardHandler.class)
-public final class PlayerRewardHandler
-        implements IPlayerRewardHandler, IDependencyBundleAccess<PlayerRewardDependencies> {
+Rules:
 
-    private IPlayerData getPlayerData() {
-        // Getter only names the dependency from the bundle.
-        // It does not store, create, or replace the dependency.
-        return dependencies().playerData();
-    }
+1. Strip a leading `I` only when it is followed by an uppercase letter.
+2. Lowercase the first remaining character.
+3. Preserve the rest of the simple type name.
+4. Reject duplicate dependency types.
+5. Reject generated-name collisions.
 
-    private IEconomyService getEconomyService() {
-        // Keep the dependency access readable inside handler methods.
-        return dependencies().economyService();
-    }
-
-    @Override
-    public void handlePlayerReward(long amount) {
-        // Actual business logic uses the named dependency getters.
-        getPlayerData().addCoins(amount);
-        getEconomyService().recordTransaction(amount);
-    }
-}
-```
-
-## For small classes with 1-3 dependencies
-
-Use named getters.
-
-```java
-private IPlayerData getPlayerData() {
-    return dependency(IPlayerData.class);
-}
-```
-
-## For one-off dependency calls
-
-Use primitive lookup.
-
-```java
-dependency(IPlayerData.class).addCoins(amount);
-```
-
-## For tests and bootstrapping
-
-Use static loader access.
-
-```java
-DependencyLoaderAccess.registerInstance(IPlayerData.class, new PlayerData(), DependencySource.TEST);
-```
-
-## For framework/runtime tooling
-
-Use metadata/wrapper access.
-
-```java
-dependencyMetaData(IPlayerData.class).wrappedInstance().dependencyInstance();
-```
+Do not silently append numbers such as `playerData2()`. A domain bundle allows the developer to author meaningful distinct component names.
 
 ---
 
 # Production Anti-Patterns
 
-## Anti-Pattern 1: Using Static Loader Everywhere
+## Reflective Bundle Hydration
 
-Bad:
+Do not create dependency records by reflecting over record components and invoking constructors. Bundles are ordinary DI-managed domain contracts.
 
-```java
-public void handlePlayerReward(long amount) {
-    DependencyLoaderAccess.requireInstance(IPlayerData.class).addCoins(amount);
-    DependencyLoaderAccess.requireInstance(IEconomyService.class).recordTransaction(amount);
-}
-```
+## Generated Instance Caches
 
-Why bad:
+Generated accessors must not cache dependency instances separately from metadata.
 
-- hides dependency contract
-- harder to graph
-- harder to test design boundaries
-- bypasses bundle/handler dependency declarations
+## Production Loader Lookup
 
-Use instead:
+Do not generate:
 
 ```java
-getPlayerData().addCoins(amount);
-getEconomyService().recordTransaction(amount);
+DependencyLoaderAccess.requireInstance(IPlayerData.class);
 ```
 
-or:
+Generate map-backed access instead.
 
-```java
-dependencies().playerData().addCoins(amount);
-```
+## Marker-Interface Registration
 
-## Anti-Pattern 2: Concrete Access by Default
+Do not require every token and concrete to implement injectable marker interfaces when `@DelegatesTo` already declares the binding.
 
-Bad:
+## Optional Required Dependencies
 
-```java
-PlayerData playerData =
-        dependencyMetaData(IPlayerData.class).dependencyInstance();
+Do not silently skip behavior because a required dependency was looked up optionally.
 
-playerData.resetCoins();
-```
+## Accidental Field Capture
 
-Unless concrete behavior is genuinely required, use:
-
-```java
-dependency(IPlayerData.class).addCoins(amount);
-```
-
-## Anti-Pattern 3: Field-Cached Dependencies in Reloadable Systems
-
-Risky:
-
-```java
-private final IPlayerData playerData = dependency(IPlayerData.class);
-```
-
-If dependency replacement is supported, this can hold stale instances.
-
-Use getter access unless you intentionally want construction-time capture.
-
-## Anti-Pattern 4: Optional Lookup for Required Dependencies
-
-Bad:
-
-```java
-DependencyLoaderAccess.findOptionalInstance(IPlayerData.class)
-        .ifPresent(playerData -> playerData.addCoins(amount));
-```
-
-If `IPlayerData` is required, fail fast instead.
-
-```java
-DependencyLoaderAccess.requireInstance(IPlayerData.class).addCoins(amount);
-```
-
-or use the normal access layer.
+Do not use dependency fields unless stale-after-replacement behavior is intentional and tested.
 
 ---
 
@@ -1000,57 +656,44 @@ or use the normal access layer.
 
 | Style | Production | Tests | Notes |
 |---|---:|---:|---|
-| Bundle / Mini-Context | Excellent | Excellent | First-class production style. |
-| Bundle + Getters | Excellent | Excellent | Best serious handler style. |
-| Named Getters | Excellent | Excellent | Best daily small-class style. |
-| Primitive Lookup | Good | Excellent | Base primitive. |
-| Local Variables | Good | Good | Best for method-scoped use. |
-| Field-Cached Dependencies | Conditional | Edge-case | Test stale/capture behavior. |
-| Direct Metadata | Internal | Excellent | Great for assertions/tooling. |
-| Wrapped Interface | Internal | Excellent | Wrapper validation. |
-| Wrapped Instance | Internal | Excellent | Concrete identity/lifecycle validation. |
-| Static Loader | Infrastructure | Excellent | Best test/bootstrap API. |
-| Optional Lookup | Boundary only | Good | Use only when dependency is actually optional. |
+| Expanded access + getters | Excellent | Excellent | Default small-set style. |
+| Domain bundle + getters | Excellent | Excellent | Default larger/reusable boundary. |
+| Direct expanded/bundle access | Excellent | Excellent | Best for compact methods. |
+| Direct map lookup | Good | Excellent | Authoritative primitive. |
+| Local variables | Good | Good | Method-scoped capture. |
+| Field-cached dependency | Conditional | Edge case | Prove capture semantics. |
+| Direct metadata | Internal | Excellent | Ownership and lifecycle assertions. |
+| Wrapped interface | Internal | Excellent | Binding verification. |
+| Wrapped concrete | Internal | Excellent | Concrete/lifecycle verification. |
+| Loader access | Compatibility | Excellent | Fixtures, scopes, migration. |
+| Optional lookup | Boundary only | Good | Absence must be legitimate. |
 
 ---
 
-# Final Official Guidance
+# Official Guidance
 
 ## Production First-Class Styles
 
-1. **Dependency bundles / mini-contexts**
-2. **Bundle + named getters**
-3. **Named getters over primitive lookup**
-4. **Primitive lookup for one-off access**
+1. Expanded `DependencyAccess` with named getters.
+2. Domain bundle through `DependencyAccess<Bundle>`, usually with named getters.
+3. Direct expanded or bundle access for compact methods.
+4. Direct map lookup for infrastructure and isolated calls.
 
-## Production Conditional Styles
+## Conditional Styles
 
-5. **Local variable lookup**
-6. **Field-cached lookup**
+5. Local method variables.
+6. Field-cached dependencies.
 
 ## Framework/Internal Styles
 
-7. **Direct metadata access**
-8. **Wrapped interface access**
-9. **Wrapped instance access**
+7. Direct metadata access.
+8. Wrapped interface access.
+9. Wrapped concrete access.
 
-## Test/Bootstrap Styles
+## Test/Compatibility Styles
 
-10. **Static loader access**
-11. **Optional lookup**
-12. **Scoped static loader access**
-13. **Replacement access**
+10. Loader registration and scoped access.
+11. Optional lookup.
+12. Replacement and direct metadata assertions.
 
----
-
-# Final Take
-
-Bundles should be the production flagship.
-
-They are not just an access style. They are dependency mini-contexts. They make handler dependency boundaries visible, testable, and enforceable.
-
-Named getters are still the best daily local ergonomics.
-
-Static loader access is great for tests and bootstrap, but should not become the lazy global call path inside every handler unless the module is explicitly infrastructure-level.
-
-Metadata and wrapper access are powerful and should stay available, but they are runtime/framework tools, not normal business logic toys. Otherwise every feature method turns into a dependency autopsy report, and nobody needs that kind of crime scene energy in production Java.
+The style guide recommends a bundle after roughly four direct dependencies because that is usually where a domain boundary becomes visible. The processor remains unbounded because architecture guidance belongs in review, not in a fabricated compiler limitation.

@@ -1,5 +1,5 @@
 /*
- * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
+ * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
@@ -16,163 +16,173 @@ import org.tavall.dependency.metadata.wrappers.DependencyInstance;
 import org.tavall.dependency.metadata.wrappers.DependencyInterface;
 import org.tavall.logging.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
- * Global registry that maps interface tokens to dependency metadata.
+ * Authoritative dependency token-to-metadata map.
  */
-public class DependencyMap extends ConcurrentHashMap<Class<?>, IDependencyMetaData<?, ?>> implements IDependencyMap {
+public class DependencyMap
+        extends ConcurrentHashMap<Class<?>, IDependencyMetaData<?, ?>>
+        implements IDependencyMap {
     private static final DependencyMap DEPENDENCY_MAP = new DependencyMap();
 
-    /**
-     * Returns the singleton dependency map used by the dependency module.
-     *
-     * @return the shared dependency map
-     */
     public static DependencyMap getDependencyMap() {
         return DEPENDENCY_MAP;
     }
 
     @Override
     public void registerDependency(
-            Class<?> rawDependencyInterface,
+            Class<?> dependencyType,
             IDependencyMetaData<?, ?> dependencyMetaData) {
-        if (rawDependencyInterface == null || dependencyMetaData == null) {
+        if (dependencyType == null || dependencyMetaData == null) {
             throw new IllegalArgumentException("[DependencyMap] dependency key and metadata are required");
         }
-
-        put(rawDependencyInterface, dependencyMetaData);
+        put(dependencyType, dependencyMetaData);
     }
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public <T> T registerInstance(Class<T> dependencyInterface, T dependencyInstance) {
-        if (dependencyInterface == null) {
+    public <T> T registerInstance(Class<T> dependencyType, T dependencyInstance) {
+        validateRegistration(dependencyType, dependencyInstance);
+
+        Class concreteType = dependencyInstance.getClass();
+        DependencyMetaData metaData = new DependencyMetaData();
+        metaData.bindDependencyInstance(
+                dependencyType,
+                concreteType,
+                new DependencyInterface(dependencyType),
+                new DependencyInstance(concreteType),
+                dependencyInstance,
+                () -> dependencyInstance);
+        registerDependency(dependencyType, metaData);
+        metaData.initializeDependencyInstance();
+        return dependencyType.cast(dependencyInstance);
+    }
+
+    @Override
+    public <T> T registerInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
+        if (dependencyType == null) {
+            throw new IllegalArgumentException("[DependencyMap] dependency key is required");
+        }
+        if (supplier == null) {
+            throw new IllegalArgumentException("[DependencyMap] supplier is required");
+        }
+
+        T instance = supplier.get();
+        validateRegistration(dependencyType, instance);
+        return registerSuppliedInstance(dependencyType, instance, supplier);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private <T> T registerSuppliedInstance(
+            Class<T> dependencyType,
+            T instance,
+            Supplier<? extends T> supplier) {
+        Class concreteType = instance.getClass();
+        DependencyMetaData metaData = new DependencyMetaData();
+        metaData.bindDependencyInstance(
+                dependencyType,
+                concreteType,
+                new DependencyInterface(dependencyType),
+                new DependencyInstance(concreteType),
+                instance,
+                (Supplier) supplier);
+        registerDependency(dependencyType, metaData);
+        metaData.initializeDependencyInstance();
+        return dependencyType.cast(instance);
+    }
+
+    private <T> void validateRegistration(Class<T> dependencyType, T dependencyInstance) {
+        if (dependencyType == null) {
             throw new IllegalArgumentException("[DependencyMap] dependency key is required");
         }
         if (dependencyInstance == null) {
             throw new IllegalArgumentException("[DependencyMap] dependency instance is required");
         }
-        if (!dependencyInterface.isInstance(dependencyInstance)) {
-            throw new IllegalArgumentException("[DependencyMap] dependency instance must implement "
-                    + dependencyInterface.getName());
+        if (!dependencyType.isInstance(dependencyInstance)) {
+            throw new IllegalArgumentException("[DependencyMap] dependency instance must satisfy "
+                    + dependencyType.getName());
         }
-
-        Class concreteType = dependencyInstance.getClass();
-        DependencyMetaData metaData = new DependencyMetaData();
-        Supplier directSupplier = () -> dependencyInstance;
-        ((DependencyMetaData) metaData).bindDependencyInstance(
-                (Class) dependencyInterface,
-                concreteType,
-                new DependencyInterface((Class) dependencyInterface),
-                new DependencyInstance(concreteType),
-                dependencyInstance,
-                directSupplier);
-        registerDependency(dependencyInterface, metaData);
-        metaData.initializeDependencyInstance();
-        return dependencyInterface.cast(dependencyInstance);
     }
 
     @Override
-    public <T> T registerInstance(Class<T> dependencyInterface, Supplier<? extends T> supplier) {
-        if (supplier == null) {
-            throw new IllegalArgumentException("[DependencyMap] supplier is required");
-        }
-        T instance = supplier.get();
-        if (instance == null) {
-            throw new IllegalStateException("[DependencyMap] supplier returned null for " + dependencyInterface.getName());
-        }
-        if (!dependencyInterface.isInstance(instance)) {
-            throw new IllegalArgumentException("[DependencyMap] dependency instance must implement "
-                    + dependencyInterface.getName());
-        }
-
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        Class concreteType = instance.getClass();
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        DependencyMetaData metaData = new DependencyMetaData();
-        @SuppressWarnings("rawtypes")
-        Supplier rawSupplier = (Supplier) supplier;
-        ((DependencyMetaData) metaData).bindDependencyInstance(
-                (Class) dependencyInterface,
-                concreteType,
-                new DependencyInterface((Class) dependencyInterface),
-                new DependencyInstance(concreteType),
-                instance,
-                rawSupplier);
-        registerDependency(dependencyInterface, metaData);
-        metaData.initializeDependencyInstance();
-        return dependencyInterface.cast(instance);
+    public <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType) {
+        return dependencyType == null ? null : get(dependencyType);
     }
 
     @Override
-    public <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyInterface) {
-        if (dependencyInterface == null) {
+    public <T> T findInstance(Class<T> dependencyType) {
+        if (dependencyType == null) {
             return null;
         }
-        return get(dependencyInterface);
+        IDependencyMetaData<?, ?> metaData = findMetaData(dependencyType);
+        return metaData == null ? null : metaData.findInstance(dependencyType);
     }
 
     @Override
-    public <T> T findInstance(Class<T> dependencyInterface) {
-        if (dependencyInterface == null) {
-            return null;
+    public <T> T getInstance(Class<T> dependencyType) {
+        if (dependencyType == null) {
+            throw new IllegalArgumentException("dependencyType is required");
         }
 
-        IDependencyMetaData<?, ?> metaData = findMetaData(dependencyInterface);
+        IDependencyMetaData<?, ?> metaData = findMetaData(dependencyType);
         if (metaData == null) {
-            return null;
+            throw new IllegalStateException("No dependency registered for " + dependencyType.getName());
         }
-
-        Object resolvedDependency = metaData.resolveLocalInstance(dependencyInterface);
-        if (dependencyInterface.isInstance(resolvedDependency)) {
-            return dependencyInterface.cast(resolvedDependency);
-        }
-
-        return null;
+        return metaData.getInstance(dependencyType);
     }
 
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public <T> T replaceInstance(Class<T> dependencyInterface, Supplier<? extends T> supplier) {
-        if (dependencyInterface == null) {
+    public <T> T replaceInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
+        if (dependencyType == null) {
             throw new IllegalArgumentException("[DependencyMap] dependency key is required");
         }
         if (supplier == null) {
             throw new IllegalArgumentException("[DependencyMap] replacement supplier is required");
         }
 
-        IDependencyMetaData<?, ?> metaData = findMetaData(dependencyInterface);
+        IDependencyMetaData<?, ?> metaData = findMetaData(dependencyType);
         if (metaData == null) {
-            throw new IllegalStateException("replaceInstance: instance not registered: " + dependencyInterface.getName());
+            throw new IllegalStateException("No dependency registered for " + dependencyType.getName());
         }
 
-        Object existing = metaData.resolveLocalInstance(dependencyInterface);
-        if (!dependencyInterface.isInstance(existing)) {
-            throw new IllegalStateException("replaceInstance: instance not registered: " + dependencyInterface.getName());
+        T replacement = supplier.get();
+        if (replacement == null) {
+            throw new IllegalStateException("Replacement supplier returned null for " + dependencyType.getName());
         }
 
-        ((IDependencyMetaData) metaData).replaceDependencyInstance((Supplier) supplier);
-        Object replacement = metaData.resolveLocalInstance(dependencyInterface);
-        if (!dependencyInterface.isInstance(replacement)) {
-            throw new IllegalStateException("replaceInstance: replacement type mismatch for " + dependencyInterface.getName());
+        List<Class<?>> mappedTypes = new ArrayList<>();
+        for (Map.Entry<Class<?>, IDependencyMetaData<?, ?>> entry : entrySet()) {
+            if (entry.getValue() == metaData) {
+                mappedTypes.add(entry.getKey());
+            }
+        }
+        for (Class<?> mappedType : mappedTypes) {
+            if (!mappedType.isInstance(replacement)) {
+                throw new IllegalArgumentException("Replacement " + replacement.getClass().getName()
+                        + " cannot satisfy mapped dependency token " + mappedType.getName());
+            }
         }
 
-        return dependencyInterface.cast(replacement);
+        ((IDependencyMetaData) metaData).replaceDependencyInstance(() -> replacement);
+        return metaData.getInstance(dependencyType);
     }
 
     @Override
-    public void removeDependency(Class<?> dependencyInterface) {
-        if (dependencyInterface == null) {
-            return;
+    public void removeDependency(Class<?> dependencyType) {
+        if (dependencyType != null) {
+            remove(dependencyType);
         }
-        remove(dependencyInterface);
     }
 
     @Override
-    public boolean isInstanceRegistered(Class<?> dependencyInterface) {
-        return dependencyInterface != null && containsKey(dependencyInterface);
+    public boolean isInstanceRegistered(Class<?> dependencyType) {
+        return dependencyType != null && containsKey(dependencyType);
     }
 
     @Override

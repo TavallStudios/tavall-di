@@ -1,5 +1,5 @@
 /*
- * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
+ * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
@@ -14,94 +14,39 @@ import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
 import java.util.function.Supplier;
 
 /**
- * Contract for the shared DI registration map.
+ * Contract for the shared DI token-to-metadata map.
  */
 public interface IDependencyMap {
 
-    /**
-     * Checks whether a dependency token is already registered.
-     *
-     * @param dependencyInterface the interface token to inspect
-     * @return {@code true} when the token has metadata in the map
-     */
-    boolean isInstanceRegistered(Class<?> dependencyInterface);
+    boolean isInstanceRegistered(Class<?> dependencyType);
 
-    /**
-     * Stores metadata under the supplied interface token.
-     *
-     * @param rawDependencyInterface the interface token to register
-     * @param dependencyMetaData the metadata that owns the token binding
-     */
     void registerDependency(
-            Class<?> rawDependencyInterface,
+            Class<?> dependencyType,
             IDependencyMetaData<?, ?> dependencyMetaData);
 
-    /**
-     * Registers an already-constructed dependency instance without reflective instantiation.
-     *
-     * @param dependencyInterface the interface token to register
-     * @param dependencyInstance the concrete instance to bind
-     * @param <T> the token type
-     * @return the registered instance
-     */
-    <T> T registerInstance(Class<T> dependencyInterface, T dependencyInstance);
+    <T> T registerInstance(Class<T> dependencyType, T dependencyInstance);
+
+    <T> T registerInstance(Class<T> dependencyType, Supplier<? extends T> supplier);
+
+    <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType);
+
+    <T> T findInstance(Class<T> dependencyType);
 
     /**
-     * Registers a dependency instance using the supplied factory without reflective instantiation.
+     * Resolves a required dependency through its mapped metadata.
      *
-     * @param dependencyInterface the interface token to register
-     * @param supplier the supplier that creates the instance to bind
-     * @param <T> the token type
-     * @return the registered instance
+     * @param dependencyType the dependency token to resolve
+     * @param <T> the dependency token type
+     * @return the metadata-owned instance
+     * @throws IllegalStateException when no compatible instance is registered
      */
-    <T> T registerInstance(Class<T> dependencyInterface, Supplier<? extends T> supplier);
+    <T> T getInstance(Class<T> dependencyType);
 
-    /**
-     * Returns metadata for the supplied interface token.
-     *
-     * @param dependencyInterface the token to inspect
-     * @param <T> the token type
-     * @return the stored metadata, or {@code null} when missing
-     */
-    <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyInterface);
+    <T> T replaceInstance(Class<T> dependencyType, Supplier<? extends T> supplier);
 
-    /**
-     * Resolves an instance for the supplied interface token.
-     *
-     * @param dependencyInterface the token to resolve
-     * @param <T> the token type
-     * @return the resolved dependency, or {@code null} when unavailable
-     */
-    <T> T findInstance(Class<T> dependencyInterface);
+    void removeDependency(Class<?> dependencyType);
 
-    /**
-     * Replaces an already-registered instance for the supplied interface token.
-     *
-     * @param dependencyInterface the token to replace
-     * @param supplier the supplier that builds the replacement instance
-     * @param <T> the token type
-     * @return the replacement instance that was stored
-     */
-    <T> T replaceInstance(Class<T> dependencyInterface, Supplier<? extends T> supplier);
-
-    /**
-     * Removes metadata registered for the supplied interface token.
-     *
-     * @param dependencyInterface the token to remove
-     */
-    void removeDependency(Class<?> dependencyInterface);
-
-    /**
-     * Returns the number of registered interface tokens.
-     *
-     * @return the registration count
-     */
     int getDependencyMapSize();
 
-    /**
-     * Checks whether the DI map is empty.
-     *
-     * @return {@code true} when no tokens are registered
-     */
     boolean isDependencyMapEmpty();
 }

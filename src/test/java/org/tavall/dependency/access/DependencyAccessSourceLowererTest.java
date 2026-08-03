@@ -4,428 +4,123 @@ import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DependencyAccessSourceLowererTest {
 
     @Test
-    void lowersSingleAccessInterfaceAndPreservesClassGenericsAndDelegatesAnnotation() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
-        Map<String, String> loweredSources = lowerer.lowerSources(buildSingleAccessSources());
+    void preservesSingleDependencyAccessWithoutGeneration() {
+        Map<String, String> lowered = new DependencyAccessSourceLowerer()
+                .lowerSources(sourcesFor("IRepository"));
 
-        String loweredHandlerSource = loweredSources.get("org.example.SingleAccessHandler");
-
-        assertTrue(loweredHandlerSource.contains("@org.tavall.dependency.annotations.GrantedDependencyAccess("));
-        assertTrue(loweredHandlerSource.contains("accessType = PlayerAccess.class"));
-        assertTrue(loweredHandlerSource.contains("dependencyTypes = {"));
-        assertTrue(loweredHandlerSource.contains("IPlayerRegistry.class"));
-        assertTrue(loweredHandlerSource.contains("IPlayerDataRepository.class"));
-        assertTrue(loweredHandlerSource.contains("@DelegatesTo(IRewardHandler.class)"));
-        assertTrue(loweredHandlerSource.contains("public final class SingleAccessHandler<RewardValue>"));
-        assertTrue(loweredHandlerSource.contains("implements PlayerAccess"));
-        assertTrue(loweredHandlerSource.contains("implements PlayerAccess"));
+        assertEquals(2, lowered.size());
+        assertTrue(lowered.get("org.example.Handler")
+                .contains("DependencyAccess<IRepository>"));
+        assertFalse(lowered.containsKey("org.example.HandlerDependencyAccess"));
     }
 
     @Test
-    void lowersMultipleAccessInterfacesAndPreservesDuplicateAcrossDomains() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
-        Map<String, String> loweredSources = lowerer.lowerSources(buildMultipleAccessSources());
+    void generatesTypedAccessForTwoToFourDependencies() {
+        Map<String, String> lowered = new DependencyAccessSourceLowerer()
+                .lowerSources(sourcesFor("IPlayerData", "IEconomyService", "RewardAuditLogger"));
 
-        String loweredHandlerSource = loweredSources.get("org.example.MultiAccessHandler");
+        String handler = lowered.get("org.example.Handler");
+        String generated = lowered.get("org.example.HandlerDependencyAccess");
 
-        assertTrue(loweredHandlerSource.contains("accessType = PlayerAccess.class"));
-        assertTrue(loweredHandlerSource.contains("accessType = EconomyAccess.class"));
-        assertTrue(loweredHandlerSource.contains("accessType = MessageAccess.class"));
-        assertTrue(loweredHandlerSource.contains("IPlayerRegistry.class"));
-        assertTrue(loweredHandlerSource.contains("IWalletRegistry.class"));
-        assertTrue(loweredHandlerSource.contains("IMessageRegistry.class"));
+        assertTrue(handler.contains("DependencyAccess<HandlerDependencyAccess>"));
+        assertTrue(generated.contains("IPlayerData playerData()"));
+        assertTrue(generated.contains("IEconomyService economyService()"));
+        assertTrue(generated.contains("RewardAuditLogger rewardAuditLogger()"));
+        assertTrue(generated.contains("getDependencyMap().getInstance(IPlayerData.class)"));
+        assertTrue(generated.contains("@org.tavall.dependency.annotations.DelegatesTo"));
     }
 
     @Test
-    void rejectsMissingVariableTypeArgumentsAnnotation() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
+    void supportsMoreThanFourDependenciesWithoutAnArityLimit() {
+        Map<String, String> lowered = new DependencyAccessSourceLowerer()
+                .lowerSources(sourcesFor(
+                        "IDependencyOne",
+                        "IDependencyTwo",
+                        "IDependencyThree",
+                        "IDependencyFour",
+                        "IDependencyFive",
+                        "IDependencySix",
+                        "IDependencySeven",
+                        "IDependencyEight",
+                        "IDependencyNine",
+                        "IDependencyTen"));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> lowerer.lowerSources(buildMissingVariableTypeArgumentSources()));
-
-        assertTrue(exception.getMessage().contains("@VariableTypeArguments"));
+        String generated = lowered.get("org.example.HandlerDependencyAccess");
+        assertTrue(generated.contains("dependencyOne()"));
+        assertTrue(generated.contains("dependencyTen()"));
     }
 
     @Test
-    void rejectsTypeVariableDependencyArgument() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
+    void rejectsExpandedAccessWithoutDelegatesTo() {
+        Map<String, String> sources = sourcesFor("IDependencyOne", "IDependencyTwo");
+        sources.put("org.example.Handler", sources.get("org.example.Handler")
+                .replace("@DelegatesTo\n", ""));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> lowerer.lowerSources(buildTypeVariableDependencySources()));
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> new DependencyAccessSourceLowerer().lowerSources(sources));
 
-        assertTrue(exception.getMessage().contains("type variable dependency argument"));
+        assertTrue(failure.getMessage().contains("requires @DelegatesTo"));
     }
 
     @Test
-    void rejectsWildcardDependencyArgument() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> lowerer.lowerSources(buildWildcardDependencySources()));
-
-        assertTrue(exception.getMessage().contains("wildcard dependency argument"));
+    void rejectsWildcardsTypeVariablesDuplicatesAndAccessorCollisions() {
+        assertInvalid("? extends IDependencyOne", "IDependencyTwo", "wildcard");
+        assertInvalid("Value", "IDependencyTwo", "type variable");
+        assertInvalid("IDependencyOne", "IDependencyOne", "duplicate");
+        assertInvalid("first.IPlayerData", "second.IPlayerData", "collision");
     }
 
-    @Test
-    void rejectsDuplicateDependencyTypeWithinOneAccessInterface() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
+    private void assertInvalid(String firstType, String secondType, String expectedMessage) {
+        Map<String, String> sources = sourcesFor(firstType, secondType);
+        sources.put("org.example.Handler", sources.get("org.example.Handler")
+                .replace("public final class Handler", "public final class Handler<Value>"));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> lowerer.lowerSources(buildDuplicateDependencySources()));
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> new DependencyAccessSourceLowerer().lowerSources(sources));
 
-        assertTrue(exception.getMessage().contains("duplicate dependency type"));
+        assertTrue(failure.getMessage().contains(expectedMessage));
     }
 
-    @Test
-    void allowsDuplicateDependencyTypeAcrossDifferentAccessInterfaces() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
-
-        assertDoesNotThrow(() -> lowerer.lowerSources(buildDuplicateAcrossAccessSources()));
-    }
-
-    private Map<String, String> buildSingleAccessSources() {
+    private Map<String, String> sourcesFor(String... dependencyTypes) {
         Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
+        for (String dependencyType : dependencyTypes) {
+            if (dependencyType.contains("?") || dependencyType.equals("Value")) {
+                continue;
+            }
+            String simpleName = dependencyType.substring(dependencyType.lastIndexOf('.') + 1);
+            String packageName = dependencyType.contains(".")
+                    ? dependencyType.substring(0, dependencyType.lastIndexOf('.'))
+                    : "org.example";
+            sources.put(packageName + "." + simpleName, """
+                    package %s;
+
+                    public interface %s {
+                    }
+                    """.formatted(packageName, simpleName));
+        }
+
+        sources.put("org.example.Handler", """
                 package org.example;
 
-                import org.tavall.dependency.annotations.VariableTypeArguments;
                 import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IPlayerDataRepository", """
-                package org.example;
-
-                public interface IPlayerDataRepository {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.SingleAccessHandler", """
-                package org.example;
-
                 import org.tavall.dependency.annotations.DelegatesTo;
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
 
-                @GrantDependencyAccess
-                @DelegatesTo(IRewardHandler.class)
-                public final class SingleAccessHandler<RewardValue>
-                        implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository> {
+                @DelegatesTo
+                public final class Handler
+                        implements DependencyAccess<%s> {
                 }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildMultipleAccessSources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.EconomyAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface EconomyAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.MessageAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface MessageAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IPlayerDataRepository", """
-                package org.example;
-
-                public interface IPlayerDataRepository {
-                }
-                """);
-        sources.put("org.example.IWalletRegistry", """
-                package org.example;
-
-                public interface IWalletRegistry {
-                }
-                """);
-        sources.put("org.example.ITransactionRepository", """
-                package org.example;
-
-                public interface ITransactionRepository {
-                }
-                """);
-        sources.put("org.example.IMessageRegistry", """
-                package org.example;
-
-                public interface IMessageRegistry {
-                }
-                """);
-        sources.put("org.example.IMessageFormatter", """
-                package org.example;
-
-                public interface IMessageFormatter {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.MultiAccessHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.DelegatesTo;
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                @DelegatesTo(IRewardHandler.class)
-                public final class MultiAccessHandler<RewardValue>
-                        implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository>,
-                        EconomyAccess<IWalletRegistry, ITransactionRepository>,
-                        MessageAccess<IMessageRegistry, IMessageFormatter> {
-                }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildMissingVariableTypeArgumentSources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.DependencyAccess;
-
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IPlayerDataRepository", """
-                package org.example;
-
-                public interface IPlayerDataRepository {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.BrokenHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                public final class BrokenHandler
-                        implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository> {
-                }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildTypeVariableDependencySources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.TypeVariableHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                public final class TypeVariableHandler<RewardValue>
-                        implements PlayerAccess<RewardValue> {
-                }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildWildcardDependencySources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.WildcardHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                public final class WildcardHandler
-                        implements PlayerAccess<? extends IPlayerRegistry> {
-                }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildDuplicateDependencySources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.DuplicateHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                public final class DuplicateHandler
-                        implements PlayerAccess<IPlayerRegistry, IPlayerRegistry> {
-                }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildDuplicateAcrossAccessSources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.MessageAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface MessageAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.DuplicateAcrossHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                public final class DuplicateAcrossHandler
-                        implements PlayerAccess<IPlayerRegistry>,
-                        MessageAccess<IPlayerRegistry> {
-                }
-                """);
+                """.formatted(String.join(", ", dependencyTypes)));
         return sources;
     }
 }

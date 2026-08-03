@@ -1,12 +1,16 @@
 package org.tavall.dependency.access;
 
-import org.tavall.dependency.annotations.DelegatesTo;
 import org.junit.jupiter.api.Test;
+import org.tavall.dependency.annotations.DelegatesTo;
 
+import java.lang.reflect.Method;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,186 +19,84 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DependencyAccessGrantProcessorTest {
 
     @Test
-    void processorEmitsGrantMetadataForSingleAccessInterface() {
+    void generatedAccessSourceCompilesWithTypedGetters() throws Exception {
         DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
-        Map<String, String> loweredSources = lowerer.lowerSources(buildSingleAccessSources());
+        Map<String, String> loweredSources = lowerer.lowerSources(buildSources(
+                "IPlayerRegistry",
+                "IPlayerDataRepository",
+                "IEconomyService"));
         Path outputDirectory = DependencyAccessTestCompiler.compileSources(loweredSources);
 
-        Class<?> handlerClass = DependencyAccessTestCompiler.loadClass(outputDirectory, "org.example.SingleAccessHandler");
-        DependencyAccessGrantHandler grantHandler = new DependencyAccessGrantHandler();
-        List<DependencyAccessGrantDescriptor> descriptors = grantHandler.findGrantedDependencyAccesses(handlerClass);
+        try (URLClassLoader loader = DependencyAccessTestCompiler.createClassLoader(outputDirectory)) {
+            Class<?> handlerClass = Class.forName("org.example.RewardHandler", true, loader);
+            Class<?> accessClass = Class.forName(
+                    "org.example.RewardHandlerDependencyAccess",
+                    true,
+                    loader
+            );
 
-        assertEquals(1, descriptors.size());
-        DependencyAccessGrantDescriptor descriptor = descriptors.get(0);
-        assertEquals("org.example.PlayerAccess", descriptor.accessType().getName());
-        assertEquals(2, descriptor.dependencyTypes().size());
-        assertEquals("org.example.IPlayerRegistry", descriptor.dependencyTypes().get(0).getName());
-        assertEquals("org.example.IPlayerDataRepository", descriptor.dependencyTypes().get(1).getName());
+            assertNotNull(handlerClass.getAnnotation(DelegatesTo.class));
+            assertNotNull(accessClass.getAnnotation(DelegatesTo.class));
+            Set<String> methodNames = Arrays.stream(accessClass.getDeclaredMethods())
+                    .map(Method::getName)
+                    .filter(name -> !name.equals("getDependencyMap"))
+                    .collect(Collectors.toSet());
+            assertEquals(Set.of("playerRegistry", "playerDataRepository", "economyService"), methodNames);
+        }
     }
 
     @Test
-    void processorEmitsGrantMetadataForMultipleAccessInterfacesAndPreservesDelegatesAnnotation() {
-        DependencyAccessSourceLowerer lowerer = new DependencyAccessSourceLowerer();
-        Map<String, String> loweredSources = lowerer.lowerSources(buildMultipleAccessSources());
+    void generatedAccessSourceCompilesWithTenDependencies() throws Exception {
+        Map<String, String> loweredSources = new DependencyAccessSourceLowerer().lowerSources(buildSources(
+                "IDependencyOne",
+                "IDependencyTwo",
+                "IDependencyThree",
+                "IDependencyFour",
+                "IDependencyFive",
+                "IDependencySix",
+                "IDependencySeven",
+                "IDependencyEight",
+                "IDependencyNine",
+                "IDependencyTen"));
         Path outputDirectory = DependencyAccessTestCompiler.compileSources(loweredSources);
 
-        Class<?> handlerClass = DependencyAccessTestCompiler.loadClass(outputDirectory, "org.example.MultiAccessHandler");
-        DelegatesTo delegatesTo = handlerClass.getAnnotation(DelegatesTo.class);
+        try (URLClassLoader loader = DependencyAccessTestCompiler.createClassLoader(outputDirectory)) {
+            Class<?> accessClass = Class.forName(
+                    "org.example.RewardHandlerDependencyAccess",
+                    true,
+                    loader
+            );
 
-        assertNotNull(delegatesTo);
-        assertEquals("org.example.IRewardHandler", delegatesTo.value()[0].getName());
-
-        DependencyAccessGrantHandler grantHandler = new DependencyAccessGrantHandler();
-        List<DependencyAccessGrantDescriptor> descriptors = grantHandler.findGrantedDependencyAccesses(handlerClass);
-
-        assertEquals(3, descriptors.size());
-        assertTrue(descriptors.stream().anyMatch(descriptor ->
-                "org.example.PlayerAccess".equals(descriptor.accessType().getName())
-                        && descriptor.dependencyTypes().stream().map(Class::getName).toList()
-                        .equals(List.of("org.example.IPlayerRegistry", "org.example.IPlayerDataRepository"))));
-        assertTrue(descriptors.stream().anyMatch(descriptor ->
-                "org.example.EconomyAccess".equals(descriptor.accessType().getName())
-                        && descriptor.dependencyTypes().stream().map(Class::getName).toList()
-                        .equals(List.of("org.example.IWalletRegistry", "org.example.ITransactionRepository"))));
-        assertTrue(descriptors.stream().anyMatch(descriptor ->
-                "org.example.MessageAccess".equals(descriptor.accessType().getName())
-                        && descriptor.dependencyTypes().stream().map(Class::getName).toList()
-                        .equals(List.of("org.example.IMessageRegistry", "org.example.IMessageFormatter"))));
+            long accessorCount = Arrays.stream(accessClass.getDeclaredMethods())
+                    .filter(method -> !method.getName().equals("getDependencyMap"))
+                    .count();
+            assertEquals(10L, accessorCount);
+            assertTrue(Arrays.stream(accessClass.getDeclaredMethods())
+                    .anyMatch(method -> method.getName().equals("dependencyTen")));
+        }
     }
 
-    private Map<String, String> buildSingleAccessSources() {
+    private Map<String, String> buildSources(String... dependencyTypes) {
         Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
+        for (String dependencyType : dependencyTypes) {
+            sources.put("org.example." + dependencyType, """
+                    package org.example;
+
+                    public interface %s {
+                    }
+                    """.formatted(dependencyType));
+        }
+        sources.put("org.example.RewardHandler", """
                 package org.example;
 
-                import org.tavall.dependency.annotations.VariableTypeArguments;
                 import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IPlayerDataRepository", """
-                package org.example;
-
-                public interface IPlayerDataRepository {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.SingleAccessHandler", """
-                package org.example;
-
                 import org.tavall.dependency.annotations.DelegatesTo;
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
 
-                @GrantDependencyAccess
-                @DelegatesTo(IRewardHandler.class)
-                public final class SingleAccessHandler<RewardValue>
-                        implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository> {
+                @DelegatesTo
+                public final class RewardHandler
+                        implements DependencyAccess<%s> {
                 }
-                """);
-        return sources;
-    }
-
-    private Map<String, String> buildMultipleAccessSources() {
-        Map<String, String> sources = new LinkedHashMap<>();
-        sources.put("org.example.PlayerAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface PlayerAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.EconomyAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface EconomyAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.MessageAccess", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.VariableTypeArguments;
-                import org.tavall.dependency.DependencyAccess;
-
-                @VariableTypeArguments
-                public interface MessageAccess extends DependencyAccess {
-                }
-                """);
-        sources.put("org.example.IPlayerRegistry", """
-                package org.example;
-
-                public interface IPlayerRegistry {
-                }
-                """);
-        sources.put("org.example.IPlayerDataRepository", """
-                package org.example;
-
-                public interface IPlayerDataRepository {
-                }
-                """);
-        sources.put("org.example.IWalletRegistry", """
-                package org.example;
-
-                public interface IWalletRegistry {
-                }
-                """);
-        sources.put("org.example.ITransactionRepository", """
-                package org.example;
-
-                public interface ITransactionRepository {
-                }
-                """);
-        sources.put("org.example.IMessageRegistry", """
-                package org.example;
-
-                public interface IMessageRegistry {
-                }
-                """);
-        sources.put("org.example.IMessageFormatter", """
-                package org.example;
-
-                public interface IMessageFormatter {
-                }
-                """);
-        sources.put("org.example.IRewardHandler", """
-                package org.example;
-
-                public interface IRewardHandler {
-                }
-                """);
-        sources.put("org.example.MultiAccessHandler", """
-                package org.example;
-
-                import org.tavall.dependency.annotations.DelegatesTo;
-                import org.tavall.dependency.annotations.GrantDependencyAccess;
-
-                @GrantDependencyAccess
-                @DelegatesTo(IRewardHandler.class)
-                public final class MultiAccessHandler<RewardValue>
-                        implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository>,
-                        EconomyAccess<IWalletRegistry, ITransactionRepository>,
-                        MessageAccess<IMessageRegistry, IMessageFormatter> {
-                }
-                """);
+                """.formatted(String.join(", ", dependencyTypes)));
         return sources;
     }
 }

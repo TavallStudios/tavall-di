@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         IUtils.class,
         ILocalServerMetaData.class
 })
-public class ArrayOnlyDelegatingService implements IRedis, IUtils, org.tavall.dependency.IDependencyInjectableConcrete {
+public class ArrayOnlyDelegatingService implements IRedis, IUtils {
     private static final AtomicInteger CONNECT_CALLS = new AtomicInteger();
 
     private final Map<String, Object> configValues = new HashMap<>();
@@ -61,12 +61,12 @@ public class ArrayOnlyDelegatingService implements IRedis, IUtils, org.tavall.de
 
     @Override
     public void createServerID() {
-        this.serverId = "array-only-server";
+        serverId = "array-only-server";
     }
 
     @Override
     public void createGameID() {
-        this.gameId = "array-only-game";
+        gameId = "array-only-game";
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
+ * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
@@ -9,12 +9,12 @@
 
 package org.tavall.dependency.metadata;
 
+import org.tavall.dependency.annotations.Inject;
 import org.tavall.dependency.injection.enums.LifecycleType;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInstance;
 import org.tavall.dependency.metadata.wrappers.interfaces.IDependencyInterface;
 import org.tavall.interfaces.IContext;
-import org.tavall.dependency.annotations.Inject;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -29,12 +29,10 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * Default metadata implementation for DI bindings registered in the Tavall dependency module.
- *
- * @param <INTERFACE> the injectable interface token type
- * @param <INSTANCE> the injectable concrete instance type
+ * Default metadata implementation and authoritative owner of one dependency instance.
  */
-public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaData<INTERFACE, INSTANCE> {
+public class DependencyMetaData<INTERFACE, INSTANCE>
+        implements IDependencyMetaData<INTERFACE, INSTANCE> {
     private Set<INTERFACE> subDependencies = new HashSet<>();
     private int priority;
     private int depth;
@@ -62,12 +60,11 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
 
         Class<? extends INTERFACE> resolvedInterface = resolveClass(parameterizedType.getActualTypeArguments()[0]);
         Class<? extends INSTANCE> resolvedConcrete = resolveClass(parameterizedType.getActualTypeArguments()[1]);
-
         if (resolvedInterface != null) {
-            this.primaryInterfaceType = resolvedInterface;
+            primaryInterfaceType = resolvedInterface;
         }
         if (resolvedConcrete != null) {
-            this.concreteType = resolvedConcrete;
+            concreteType = resolvedConcrete;
         }
     }
 
@@ -112,19 +109,11 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
         }
 
         @SuppressWarnings("unchecked")
-        Supplier<INSTANCE> castSupplier = dependencySupplier == null
+        Supplier<INSTANCE> resolvedSupplier = dependencySupplier == null
                 ? () -> dependencyInstance
                 : () -> (INSTANCE) dependencySupplier.get();
-        setDependencySupplier(castSupplier);
-        this.dependencyInstance = dependencyInstance;
-
-        if (this.wrappedInstance != null) {
-            this.wrappedInstance.setWrappedDependencyInstance(dependencyInstance);
-        }
-
-        if (this.wrappedInterface != null) {
-            this.wrappedInterface.setDependencyInterface(getDependencyInterface());
-        }
+        setDependencySupplier(resolvedSupplier);
+        publishDependencyInstance(dependencyInstance);
     }
 
     private void assignBinding(
@@ -132,11 +121,11 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
             Class<? extends INSTANCE> rawDependencyConcrete,
             IDependencyInterface<INTERFACE> wrappedInterface,
             IDependencyInstance<INSTANCE> wrappedInstance) {
-        validateInterfaceType(rawDependencyInterface);
+        validateDependencyType(rawDependencyInterface);
         validateConcreteType(rawDependencyConcrete, true);
 
-        this.primaryInterfaceType = rawDependencyInterface;
-        this.concreteType = rawDependencyConcrete;
+        primaryInterfaceType = rawDependencyInterface;
+        concreteType = rawDependencyConcrete;
         setWrappedInterface(wrappedInterface);
         setWrappedInstance(wrappedInstance);
 
@@ -151,19 +140,9 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
     @Override
     public void createDependencyInstance(Class<? extends INSTANCE> dependencyInstanceClass) {
         validateConcreteType(dependencyInstanceClass, true);
-
-        this.concreteType = dependencyInstanceClass;
+        concreteType = dependencyInstanceClass;
         setDependencySupplier(() -> instantiate(dependencyInstanceClass));
-        this.dependencyInstance = dependencySupplier.get();
-
-        if (wrappedInstance != null) {
-            wrappedInstance.setWrappedRawInstanceClass(dependencyInstanceClass);
-            wrappedInstance.setWrappedDependencyInstance(this.dependencyInstance);
-        }
-
-        if (wrappedInterface != null) {
-            wrappedInterface.setDependencyInterface(getDependencyInterface());
-        }
+        publishDependencyInstance(dependencySupplier.get());
     }
 
     private INSTANCE instantiate(Class<? extends INSTANCE> dependencyInstanceClass) {
@@ -171,25 +150,17 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
             var constructor = dependencyInstanceClass.getDeclaredConstructor();
             constructor.setAccessible(true);
             return constructor.newInstance();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to instantiate dependency " + dependencyInstanceClass.getName(), e);
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to instantiate dependency " + dependencyInstanceClass.getName(),
+                    exception);
         }
     }
 
-    /**
-     * Stores the supplier used to build dependency instances for this metadata.
-     *
-     * @param supplier the supplier used to create concrete instances
-     */
     public void setDependencySupplier(Supplier<INSTANCE> supplier) {
-        this.dependencySupplier = supplier;
+        dependencySupplier = supplier;
     }
 
-    /**
-     * Replaces the concrete instance using the supplied factory.
-     *
-     * @param dependencySupplier the factory used to refresh the concrete instance
-     */
     @Override
     public void replaceDependencyInstance(Supplier<? extends INSTANCE> dependencySupplier) {
         if (dependencySupplier == null) {
@@ -198,30 +169,34 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
 
         INSTANCE replacement = dependencySupplier.get();
         if (replacement == null) {
-            throw new IllegalStateException("Replacement supplier returned null for " + concreteType.getName());
+            String concreteName = concreteType == null ? "unknown dependency" : concreteType.getName();
+            throw new IllegalStateException("Replacement supplier returned null for " + concreteName);
         }
+
         if (concreteType == null || !concreteType.isInstance(replacement)) {
             @SuppressWarnings("unchecked")
             Class<? extends INSTANCE> replacementType = (Class<? extends INSTANCE>) replacement.getClass();
-            this.concreteType = replacementType;
+            concreteType = replacementType;
             if (wrappedInstance != null) {
                 wrappedInstance.setWrappedRawInstanceClass(replacementType);
             }
         }
 
         @SuppressWarnings("unchecked")
-        Supplier<INSTANCE> castSupplier = () -> (INSTANCE) replacement;
-        setDependencySupplier(castSupplier);
-        this.dependencyInstance = replacement;
+        Supplier<INSTANCE> resolvedSupplier = () -> (INSTANCE) replacement;
+        setDependencySupplier(resolvedSupplier);
+        publishDependencyInstance(replacement);
+        initializeDependencyInstance();
+    }
 
+    private void publishDependencyInstance(INSTANCE instance) {
+        dependencyInstance = instance;
         if (wrappedInstance != null) {
-            wrappedInstance.setWrappedDependencyInstance(replacement);
+            wrappedInstance.setWrappedDependencyInstance(instance);
         }
         if (wrappedInterface != null) {
             wrappedInterface.setDependencyInterface(getDependencyInterface());
         }
-
-        initializeDependencyInstance();
     }
 
     @Override
@@ -259,17 +234,42 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
         if (primaryInterfaceType != null && primaryInterfaceType.isInstance(dependencyInstance)) {
             return primaryInterfaceType.cast(dependencyInstance);
         }
-
-        if (wrappedInterface != null && wrappedInterface.getInterface() != null) {
+        if (wrappedInterface != null) {
             return wrappedInterface.getInterface();
         }
-
         return null;
     }
 
     @Override
     public INSTANCE getDependencyInstance() {
         return dependencyInstance;
+    }
+
+    @Override
+    public <T> T findInstance(Class<T> dependencyType) {
+        if (dependencyType == null || !dependencyType.isInstance(dependencyInstance)) {
+            return null;
+        }
+        return dependencyType.cast(dependencyInstance);
+    }
+
+    @Override
+    public <T> T getInstance(Class<T> dependencyType) {
+        if (dependencyType == null) {
+            throw new IllegalArgumentException("dependencyType is required");
+        }
+
+        T resolved = findInstance(dependencyType);
+        if (resolved != null) {
+            return resolved;
+        }
+
+        String concreteName = dependencyInstance == null
+                ? "no instance"
+                : dependencyInstance.getClass().getName();
+        throw new IllegalStateException(
+                "Dependency metadata cannot expose " + dependencyType.getName()
+                        + " from " + concreteName);
     }
 
     @Override
@@ -285,27 +285,16 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
     }
 
     @Override
-    public <T> T findInstance(Class<T> dependencyType) {
-        return IDependencyMetaData.super.findInstance(dependencyType);
-    }
-
-    @Override
-    public <T> T requireInstance(Class<T> dependencyType) {
-        return IDependencyMetaData.super.requireInstance(dependencyType);
-    }
-
-    @Override
     public EnumMap<LifecycleType, Method> detectLifecycleForClass(INTERFACE dependencyClass) {
-        EnumMap<LifecycleType, Method> map = new EnumMap<>(LifecycleType.class);
+        EnumMap<LifecycleType, Method> methods = new EnumMap<>(LifecycleType.class);
         if (dependencyClass == null) {
-            return map;
+            return methods;
         }
-
-        for (LifecycleType lifecycle : LifecycleType.values()) {
-            lifecycle.findIn(dependencyClass.getClass()).ifPresent(method -> map.put(lifecycle, method));
+        for (LifecycleType lifecycleType : LifecycleType.values()) {
+            lifecycleType.findIn(dependencyClass.getClass())
+                    .ifPresent(method -> methods.put(lifecycleType, method));
         }
-
-        return map;
+        return methods;
     }
 
     @Override
@@ -315,7 +304,7 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
 
     @Override
     public void setSubDependencies(Set<INTERFACE> dependencyClassSet) {
-        this.subDependencies = dependencyClassSet == null ? new HashSet<>() : dependencyClassSet;
+        subDependencies = dependencyClassSet == null ? new HashSet<>() : dependencyClassSet;
     }
 
     @Override
@@ -385,7 +374,7 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
 
     @Override
     public void setSourceContext(IContext<INTERFACE> ctx) {
-        this.sourceContext = ctx;
+        sourceContext = ctx;
     }
 
     @Override
@@ -400,20 +389,9 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
 
     @Override
     public Object resolveLocalInstance(Class<?> dependencyType) {
-        if (dependencyType == null) {
-            return null;
-        }
-
-        if (dependencyType.isInstance(dependencyInstance)) {
-            return dependencyInstance;
-        }
-
-        INTERFACE dependencyInterface = getDependencyInterface();
-        if (dependencyType.isInstance(dependencyInterface)) {
-            return dependencyInterface;
-        }
-
-        return null;
+        return dependencyType != null && dependencyType.isInstance(dependencyInstance)
+                ? dependencyInstance
+                : null;
     }
 
     @Override
@@ -421,8 +399,8 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
         return resolveLocalInstance(dependencyType) == null ? null : this;
     }
 
-    private void validateInterfaceType(Class<?> interfaceType) {
-        if (interfaceType == null) {
+    private void validateDependencyType(Class<?> dependencyType) {
+        if (dependencyType == null) {
             throw new IllegalArgumentException("[DependencyMetaData] dependency token is required");
         }
     }
@@ -435,16 +413,15 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
             throw new IllegalArgumentException("[DependencyMetaData] concrete token cannot be an interface: "
                     + concreteType.getName());
         }
-        if (requireInstantiable && java.lang.reflect.Modifier.isAbstract(concreteType.getModifiers())) {
+        if (requireInstantiable && Modifier.isAbstract(concreteType.getModifiers())) {
             throw new IllegalArgumentException("[DependencyMetaData] concrete token cannot be abstract: "
                     + concreteType.getName());
         }
     }
 
     private void detectLifecycleMethods(INSTANCE instance) {
-        Class<?> instanceClass = instance.getClass();
-        LifecycleType.PRE_CONSTRUCT.findIn(instanceClass).ifPresent(this::setPreConstruct);
-        LifecycleType.POST_CONSTRUCT.findIn(instanceClass).ifPresent(this::setPostConstruct);
+        LifecycleType.PRE_CONSTRUCT.findIn(instance.getClass()).ifPresent(this::setPreConstruct);
+        LifecycleType.POST_CONSTRUCT.findIn(instance.getClass()).ifPresent(this::setPostConstruct);
     }
 
     private void invokeLifecycleMethods(INSTANCE instance, LifecycleType lifecycleType) {
@@ -456,10 +433,10 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
                 if (lifecycleType == LifecycleType.PRE_CONSTRUCT) {
                     setPreConstructSuccess(true);
                 }
-            } catch (Exception e) {
+            } catch (Exception exception) {
                 incrementRetryCount();
                 throw new IllegalStateException("[DependencyMetaData] failed to invoke "
-                        + lifecycleType.name() + " on " + instance.getClass().getName(), e);
+                        + lifecycleType.name() + " on " + instance.getClass().getName(), exception);
             }
         }
     }
@@ -473,7 +450,7 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
                     continue;
                 }
 
-                Object resolvedDependency = findInstance(field.getType());
+                Object resolvedDependency = getDependencyMap().findInstance(field.getType());
                 if (resolvedDependency == null) {
                     if (inject.optional()) {
                         continue;
@@ -487,10 +464,10 @@ public class DependencyMetaData<INTERFACE, INSTANCE> implements IDependencyMetaD
                 try {
                     field.setAccessible(true);
                     field.set(instance, resolvedDependency);
-                } catch (IllegalAccessException e) {
+                } catch (IllegalAccessException exception) {
                     incrementRetryCount();
                     throw new IllegalStateException("[DependencyMetaData] failed to inject field "
-                            + field.getDeclaringClass().getName() + "#" + field.getName(), e);
+                            + field.getDeclaringClass().getName() + "#" + field.getName(), exception);
                 }
             }
             current = current.getSuperclass();
