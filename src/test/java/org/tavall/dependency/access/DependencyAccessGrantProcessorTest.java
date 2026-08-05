@@ -36,7 +36,10 @@ class DependencyAccessGrantProcessorTest {
             );
 
             assertNotNull(handlerClass.getAnnotation(DelegatesTo.class));
-            assertNotNull(accessClass.getAnnotation(DelegatesTo.class));
+            DelegatesTo generatedDelegation = accessClass.getAnnotation(DelegatesTo.class);
+            assertNotNull(generatedDelegation);
+            assertEquals(0, generatedDelegation.value().length);
+
             Set<String> methodNames = Arrays.stream(accessClass.getDeclaredMethods())
                     .map(Method::getName)
                     .filter(name -> !name.equals("getDependencyMap"))
