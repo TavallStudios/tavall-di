@@ -2,7 +2,9 @@ package org.tavall.dependency.access;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.tavall.dependency.injection.helpers.DependencyInjectorHelper;
 import org.tavall.dependency.maps.DependencyMap;
+import org.tavall.dependency.maps.interfaces.IDependencyMap;
 
 import java.lang.reflect.Proxy;
 import java.net.URLClassLoader;
@@ -13,6 +15,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DependencyAccessFiveDependencyIntegrationTest {
 
@@ -22,7 +25,7 @@ class DependencyAccessFiveDependencyIntegrationTest {
     }
 
     @Test
-    void resolvesFiveGeneratedDependenciesAndObservesReplacement() throws Exception {
+    void registersGeneratedAccessThroughDelegatesToAndObservesReplacement() throws Exception {
         Map<String, String> loweredSources = new DependencyAccessSourceLowerer()
                 .lowerSources(buildSources());
         Path outputDirectory = DependencyAccessTestCompiler.compileSources(loweredSources);
@@ -34,20 +37,32 @@ class DependencyAccessFiveDependencyIntegrationTest {
 
             Object firstDependency = proxy(loader, dependencyOneType);
             Object replacementDependency = proxy(loader, dependencyOneType);
-            register(dependencyOneType, firstDependency);
-            register(Class.forName("org.example.IDependencyTwo", true, loader),
+            registerFixture(dependencyOneType, firstDependency);
+            registerFixture(
+                    Class.forName("org.example.IDependencyTwo", true, loader),
                     proxy(loader, Class.forName("org.example.IDependencyTwo", true, loader)));
-            register(Class.forName("org.example.IDependencyThree", true, loader),
+            registerFixture(
+                    Class.forName("org.example.IDependencyThree", true, loader),
                     proxy(loader, Class.forName("org.example.IDependencyThree", true, loader)));
-            register(Class.forName("org.example.IDependencyFour", true, loader),
+            registerFixture(
+                    Class.forName("org.example.IDependencyFour", true, loader),
                     proxy(loader, Class.forName("org.example.IDependencyFour", true, loader)));
-            register(Class.forName("org.example.IDependencyFive", true, loader),
+            registerFixture(
+                    Class.forName("org.example.IDependencyFive", true, loader),
                     proxy(loader, Class.forName("org.example.IDependencyFive", true, loader)));
 
-            Object access = accessType.getDeclaredConstructor().newInstance();
-            register(accessType, access);
-            Object handler = handlerType.getDeclaredConstructor().newInstance();
+            DependencyInjectorHelper<Object, Object> injector = new DependencyInjectorHelper<>();
+            injector.setBasePackage("org.example");
+            injector.setupDISystem(loader);
 
+            IDependencyMap dependencyMap = DependencyMap.getDependencyMap();
+            assertTrue(dependencyMap.isInstanceRegistered(handlerType));
+            assertTrue(dependencyMap.isInstanceRegistered(accessType));
+
+            Object handler = dependencyMap.getInstance(handlerType);
+            Object access = dependencyMap.getInstance(accessType);
+
+            assertSame(dependencyMap, accessType.getMethod("getDependencyMap").invoke(access));
             assertSame(access, handlerType.getMethod("getInstance").invoke(handler));
             assertSame(firstDependency, accessType.getMethod("dependencyOne").invoke(access));
             long accessorCount = Arrays.stream(accessType.getDeclaredMethods())
@@ -55,18 +70,18 @@ class DependencyAccessFiveDependencyIntegrationTest {
                     .count();
             assertEquals(5L, accessorCount);
 
-            replace(dependencyOneType, replacementDependency);
+            replaceFixture(dependencyOneType, replacementDependency);
             assertSame(replacementDependency, accessType.getMethod("dependencyOne").invoke(access));
         }
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void register(Class<?> dependencyType, Object instance) {
+    private void registerFixture(Class<?> dependencyType, Object instance) {
         DependencyMap.getDependencyMap().registerInstance((Class) dependencyType, instance);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void replace(Class<?> dependencyType, Object instance) {
+    private void replaceFixture(Class<?> dependencyType, Object instance) {
         DependencyMap.getDependencyMap().replaceInstance((Class) dependencyType, () -> instance);
     }
 
