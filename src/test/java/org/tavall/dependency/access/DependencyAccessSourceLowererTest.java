@@ -36,7 +36,13 @@ class DependencyAccessSourceLowererTest {
         assertTrue(generated.contains("IEconomyService economyService()"));
         assertTrue(generated.contains("RewardAuditLogger rewardAuditLogger()"));
         assertTrue(generated.contains("getDependencyMap().getInstance(IPlayerData.class)"));
-        assertTrue(generated.contains("@org.tavall.dependency.annotations.DelegatesTo"));
+
+        int delegatesToIndex = generated.indexOf(
+                "@org.tavall.dependency.annotations.DelegatesTo");
+        int classDeclarationIndex = generated.indexOf(
+                "public final class HandlerDependencyAccess");
+        assertTrue(delegatesToIndex >= 0);
+        assertTrue(classDeclarationIndex > delegatesToIndex);
     }
 
     @Test
