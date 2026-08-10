@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -275,7 +276,20 @@ public final class DependencyAccessSourceLowerer {
         if (name.isEmpty()) {
             throw new IllegalArgumentException("Unable to generate accessor for " + dependencyType);
         }
-        return Character.toLowerCase(name.charAt(0)) + name.substring(1);
+        int uppercasePrefixEnd = 1;
+        while (uppercasePrefixEnd < name.length()
+                && Character.isUpperCase(name.charAt(uppercasePrefixEnd))) {
+            if (uppercasePrefixEnd + 1 < name.length()
+                    && Character.isLowerCase(name.charAt(uppercasePrefixEnd + 1))) {
+                break;
+            }
+            uppercasePrefixEnd++;
+        }
+        if (uppercasePrefixEnd == name.length()) {
+            return name.toLowerCase(Locale.ROOT);
+        }
+        return name.substring(0, uppercasePrefixEnd).toLowerCase(Locale.ROOT)
+                + name.substring(uppercasePrefixEnd);
     }
 
     private String parsePackageName(String source) {

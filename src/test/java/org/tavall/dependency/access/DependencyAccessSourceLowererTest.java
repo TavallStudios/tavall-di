@@ -66,6 +66,15 @@ class DependencyAccessSourceLowererTest {
     }
 
     @Test
+    void lowersLeadingAcronymsToLowerCamelAccessors() {
+        Map<String, String> lowered = new DependencyAccessSourceLowerer()
+                .lowerSources(sourcesFor("FFAEntityTransaction", "ISecondDependency"));
+
+        String generated = lowered.get("org.example.HandlerDependencyAccess");
+        assertTrue(generated.contains("FFAEntityTransaction ffaEntityTransaction()"));
+    }
+
+    @Test
     void rejectsExpandedAccessWithoutDelegatesTo() {
         Map<String, String> sources = sourcesFor("IDependencyOne", "IDependencyTwo");
         sources.put("org.example.Handler", sources.get("org.example.Handler")
