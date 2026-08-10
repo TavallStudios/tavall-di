@@ -1,12 +1,12 @@
 package org.tavall.dependency.injection.helpers.fixtures;
 
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.fixtures.contracts.interfaces.IUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@DelegatesToInterface(getLinkedInterface = IUtils.class)
+@DelegatesTo(IUtils.class)
 public class DelegatingUtilsService implements IUtils, org.tavall.dependency.IDependencyInjectableConcrete {
     private final Map<String, Object> configValues = new HashMap<>();
     private String serverId = "";

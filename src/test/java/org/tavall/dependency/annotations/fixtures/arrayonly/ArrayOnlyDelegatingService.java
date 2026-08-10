@@ -1,6 +1,6 @@
 package org.tavall.dependency.annotations.fixtures.arrayonly;
 
-import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.fixtures.contracts.interfaces.IRedis;
 import org.tavall.dependency.fixtures.contracts.interfaces.IUtils;
 import org.tavall.dependency.fixtures.contracts.machine.data.interfaces.ILocalServerMetaData;
@@ -9,8 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@DelegatesToInterface(getLinkedInterfaces = {IRedis.class, IUtils.class, ILocalServerMetaData.class})
-public class ArrayOnlyDelegatingService implements IRedis, IUtils, org.tavall.dependency.IDependencyInjectableConcrete {
+@DelegatesTo({
+        IRedis.class,
+        IUtils.class,
+        ILocalServerMetaData.class
+})
+public class ArrayOnlyDelegatingService implements IRedis, IUtils {
     private static final AtomicInteger CONNECT_CALLS = new AtomicInteger();
 
     private final Map<String, Object> configValues = new HashMap<>();
@@ -57,12 +61,12 @@ public class ArrayOnlyDelegatingService implements IRedis, IUtils, org.tavall.de
 
     @Override
     public void createServerID() {
-        this.serverId = "array-only-server";
+        serverId = "array-only-server";
     }
 
     @Override
     public void createGameID() {
-        this.gameId = "array-only-game";
+        gameId = "array-only-game";
     }
 
     @Override

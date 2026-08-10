@@ -1,14 +1,8 @@
 package org.tavall.dependency.access.fixtures;
 
 import org.tavall.dependency.DependencyAccess;
-import org.tavall.dependency.annotations.DelegatesToInterface;
-import org.tavall.dependency.annotations.GrantDependencyAccess;
-import org.tavall.dependency.annotations.GrantedDependencyAccess;
-import org.tavall.dependency.annotations.VariableTypeArguments;
-
-@VariableTypeArguments
-interface PlayerAccess<FirstDependency, SecondDependency, ThirdDependency, FourthDependency, FifthDependency> extends DependencyAccess {
-}
+import org.tavall.dependency.IDependencyAccess;
+import org.tavall.dependency.annotations.DelegatesTo;
 
 interface IPlayerRegistry {
 }
@@ -28,18 +22,30 @@ interface IMessageFormatter {
 interface IRewardHandler {
 }
 
-@GrantDependencyAccess
-@GrantedDependencyAccess(
-        accessType = PlayerAccess.class,
-        dependencyTypes = {
-                IPlayerRegistry.class,
-                IPlayerDataRepository.class,
-                IWalletRegistry.class,
-                ITransactionRepository.class,
-                IMessageFormatter.class
-        }
-)
-@DelegatesToInterface(value = IRewardHandler.class)
+@DelegatesTo
+final class FiveDependencyAccess implements IDependencyAccess {
+    public IPlayerRegistry playerRegistry() {
+        return getDependencyMap().getInstance(IPlayerRegistry.class);
+    }
+
+    public IPlayerDataRepository playerDataRepository() {
+        return getDependencyMap().getInstance(IPlayerDataRepository.class);
+    }
+
+    public IWalletRegistry walletRegistry() {
+        return getDependencyMap().getInstance(IWalletRegistry.class);
+    }
+
+    public ITransactionRepository transactionRepository() {
+        return getDependencyMap().getInstance(ITransactionRepository.class);
+    }
+
+    public IMessageFormatter messageFormatter() {
+        return getDependencyMap().getInstance(IMessageFormatter.class);
+    }
+}
+
+@DelegatesTo(IRewardHandler.class)
 public final class FiveDependencyHandler<HandlerValue>
-        implements PlayerAccess<IPlayerRegistry, IPlayerDataRepository, IWalletRegistry, ITransactionRepository, IMessageFormatter> {
+        implements IRewardHandler, DependencyAccess<FiveDependencyAccess> {
 }

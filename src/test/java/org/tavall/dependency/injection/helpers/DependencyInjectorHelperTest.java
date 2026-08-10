@@ -4,6 +4,7 @@ import org.tavall.dependency.DependencyLoaderAccess;
 import org.tavall.dependency.injection.helpers.fixtures.DelegatingRedisService;
 import org.tavall.dependency.injection.helpers.fixtures.DelegatingUtilsService;
 import org.tavall.dependency.injection.helpers.multiplefixtures.DelegatingMultiInterfaceService;
+import org.tavall.dependency.injection.helpers.legacyfixtures.LegacyDelegatingService;
 import org.tavall.dependency.maps.DependencyMap;
 import org.tavall.dependency.fixtures.contracts.interfaces.IRedis;
 import org.tavall.dependency.fixtures.contracts.interfaces.IUtils;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DependencyInjectorHelperTest {
     private static final String FIXTURE_PACKAGE = "org.tavall.dependency.injection.helpers.fixtures";
     private static final String MULTI_FIXTURE_PACKAGE = "org.tavall.dependency.injection.helpers.multiplefixtures";
+    private static final String LEGACY_FIXTURE_PACKAGE = "org.tavall.dependency.injection.helpers.legacyfixtures";
 
     @BeforeEach
     void resetState() {
@@ -136,6 +138,31 @@ class DependencyInjectorHelperTest {
         assertEquals("annotated-multi-game", localServerMetaData.getGameID());
         assertEquals("annotation-multi", utils.getConfigValues().get("surface"));
         assertEquals("annotated-multi-4", utils.generateRandomID(4));
+    }
+
+
+    @Test
+    void registersConcreteDependencyTokenAgainstTheSameSingleton() throws Throwable {
+        TestableDependencyInjectorHelper helper = new TestableDependencyInjectorHelper();
+        helper.BASE_PACKAGE = FIXTURE_PACKAGE;
+
+        helper.setupDISystem();
+
+        IRedis redis = DependencyLoaderAccess.requireInstance(IRedis.class);
+        DelegatingRedisService concrete = DependencyLoaderAccess.requireInstance(DelegatingRedisService.class);
+        assertSame(redis, concrete);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    void deprecatedDelegatesToInterfaceRemainsSupported() throws Throwable {
+        TestableDependencyInjectorHelper helper = new TestableDependencyInjectorHelper();
+        helper.BASE_PACKAGE = LEGACY_FIXTURE_PACKAGE;
+
+        helper.setupDISystem();
+
+        IRedis redis = DependencyLoaderAccess.requireInstance(IRedis.class);
+        assertTrue(redis instanceof LegacyDelegatingService);
     }
 
     private void runBootstrapAndAssertFixtureBindings(ThrowingHelperBootstrap bootstrap) throws Throwable {

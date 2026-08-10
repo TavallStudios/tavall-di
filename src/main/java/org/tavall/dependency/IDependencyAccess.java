@@ -1,5 +1,5 @@
 /*
- * TJVD License (TJ ValentineÃ¢â‚¬â„¢s Discretionary License) Ã¢â‚¬â€ Version 1.0 (2025)
+ * TJVD License (TJ Valentine’s Discretionary License) — Version 1.0 (2025)
  *
  * Copyright (c) 2025 Taheesh Valentine
  *
@@ -9,71 +9,56 @@
 
 package org.tavall.dependency;
 
+import org.tavall.dependency.maps.DependencyMap;
+import org.tavall.dependency.maps.interfaces.IDependencyMap;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
 
 import java.util.function.Supplier;
 
 /**
- * Shared loader-style DI lookup behavior that can be mixed into wrappers and metadata types.
+ * Shared dependency access backed by the authoritative dependency map.
  */
 public interface IDependencyAccess {
 
     /**
-     * Returns the global dependency loader used for token-based lookups.
-     *
-     * @return the shared dependency loader
+     * Returns the map that owns dependency metadata for this access object.
      */
+    default IDependencyMap getDependencyMap() {
+        return DependencyMap.getDependencyMap();
+    }
+
+    /**
+     * Returns the global compatibility loader.
+     *
+     * @deprecated Normal production lookup should use {@link #getDependencyMap()}.
+     */
+    @Deprecated(forRemoval = false)
     default DependencyLoader getDependencyLoader() {
         return DependencyLoader.getDependencyLoader();
     }
 
     /**
-     * Returns the dependency loader for the supplied logical scope.
-     *
-     * @param scopeName the DI scope to resolve
-     * @return the scoped dependency loader
+     * Returns a named compatibility loader.
      */
     default DependencyLoader getDependencyLoader(String scopeName) {
         return DependencyLoader.getDependencyLoader(scopeName);
     }
 
-    /**
-     * Resolves metadata for the supplied dependency token.
-     *
-     * @param dependencyType the interface token used for lookup
-     * @param <T> the dependency token type
-     * @return metadata for the token, or {@code null} when nothing is registered
-     */
     default <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType) {
         if (dependencyType == null) {
             return null;
         }
 
         IDependencyMetaData<?, ?> localMetaData = resolveLocalMetaData(dependencyType);
-        if (localMetaData != null) {
-            return localMetaData;
-        }
-
-        return getDependencyLoader().findMetaData(dependencyType);
+        return localMetaData != null
+                ? localMetaData
+                : getDependencyMap().findMetaData(dependencyType);
     }
 
-    /**
-     * Checks whether a dependency token is registered in the global DI runtime.
-     *
-     * @param dependencyType the interface token to inspect
-     * @return {@code true} when the token is registered
-     */
     default boolean isInstanceRegistered(Class<?> dependencyType) {
-        return dependencyType != null && getDependencyLoader().isInstanceRegistered(dependencyType);
+        return dependencyType != null && getDependencyMap().isInstanceRegistered(dependencyType);
     }
 
-    /**
-     * Resolves a dependency from local state first and then from the global DI runtime.
-     *
-     * @param dependencyType the interface token to resolve
-     * @param <T> the dependency token type
-     * @return the resolved dependency instance, or {@code null} when unavailable
-     */
     default <T> T findInstance(Class<T> dependencyType) {
         if (dependencyType == null) {
             return null;
@@ -84,77 +69,49 @@ public interface IDependencyAccess {
             return dependencyType.cast(localDependency);
         }
 
-        return getDependencyLoader().findInstance(dependencyType);
+        return getDependencyMap().findInstance(dependencyType);
     }
 
     /**
-     * Resolves a dependency and fails fast when the token is missing.
-     *
-     * @param dependencyType the interface token to resolve
-     * @param <T> the dependency token type
-     * @return the resolved dependency instance
+     * Resolves a required dependency from local state or the owning map.
      */
-    default <T> T requireInstance(Class<T> dependencyType) {
-        T dependency = findInstance(dependencyType);
-        if (dependency != null) {
-            return dependency;
+    default <T> T getInstance(Class<T> dependencyType) {
+        if (dependencyType == null) {
+            throw new IllegalArgumentException("dependencyType is required");
         }
 
-        throw new IllegalStateException("No dependency registered for " + dependencyType.getName());
+        Object localDependency = resolveLocalInstance(dependencyType);
+        if (dependencyType.isInstance(localDependency)) {
+            return dependencyType.cast(localDependency);
+        }
+
+        return getDependencyMap().getInstance(dependencyType);
     }
 
     /**
-     * Replaces an already-registered dependency instance.
-     *
-     * @param dependencyType the interface token to replace
-     * @param supplier the supplier that creates the replacement instance
-     * @param <T> the dependency token type
-     * @return the replacement instance
+     * @deprecated Use {@link #getInstance(Class)}.
      */
+    @Deprecated(forRemoval = false)
+    default <T> T requireInstance(Class<T> dependencyType) {
+        return getInstance(dependencyType);
+    }
+
     default <T> T replaceInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
-        return getDependencyLoader().replaceInstance(dependencyType, supplier);
+        return getDependencyMap().replaceInstance(dependencyType, supplier);
     }
 
-    /**
-     * Registers an already-constructed dependency instance in the default loader.
-     *
-     * @param dependencyType the interface token to bind
-     * @param dependencyInstance the instance to register
-     * @param <T> the dependency token type
-     * @return the registered instance
-     */
     default <T> T registerInstance(Class<T> dependencyType, T dependencyInstance) {
-        return getDependencyLoader().registerInstance(dependencyType, dependencyInstance);
+        return getDependencyMap().registerInstance(dependencyType, dependencyInstance);
     }
 
-    /**
-     * Registers a dependency instance in the default loader using the supplied supplier.
-     *
-     * @param dependencyType the interface token to bind
-     * @param supplier the factory that creates the instance
-     * @param <T> the dependency token type
-     * @return the registered instance
-     */
     default <T> T registerInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
-        return getDependencyLoader().registerInstance(dependencyType, supplier);
+        return getDependencyMap().registerInstance(dependencyType, supplier);
     }
 
-    /**
-     * Resolves a dependency from the current object before the DI runtime is queried.
-     *
-     * @param dependencyType the interface token being resolved
-     * @return the locally available dependency, or {@code null} when this object cannot satisfy it
-     */
     default Object resolveLocalInstance(Class<?> dependencyType) {
         return null;
     }
 
-    /**
-     * Resolves metadata from the current object before the DI map is queried.
-     *
-     * @param dependencyType the interface token being resolved
-     * @return local metadata, or {@code null} when this object has none
-     */
     default IDependencyMetaData<?, ?> resolveLocalMetaData(Class<?> dependencyType) {
         return null;
     }
