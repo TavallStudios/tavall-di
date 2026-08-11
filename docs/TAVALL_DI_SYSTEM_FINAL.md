@@ -362,9 +362,14 @@ The active implementation includes:
 Java 25 validation passed on branch head `e99f287bc366f312d231dc70d48df603b3f4720e` with:
 
 ```text
-clean
-check
-publishToMavenLocal
+./gradlew clean check
+```
+
+Publication validation uses the authenticated GitHub Packages repository configured
+by the Gradle build. The workflow's manual publication path runs:
+
+```text
+./gradlew -PtavallVersion=<version> clean check publish
 ```
 
 Remaining work is downstream migration and eventual compatibility-surface removal, not implementation of the active access path.
