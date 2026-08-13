@@ -23,13 +23,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
- * Authoritative dependency token-to-metadata map.
+ * Thread-safe implementation of the authoritative dependency token-to-metadata map.
+ *
+ * <p>The static map returned by {@link #getDependencyMap()} is the process-wide default. Additional
+ * instances may still be created for isolated named loader scopes.</p>
  */
 public class DependencyMap
         extends ConcurrentHashMap<Class<?>, IDependencyMetaData<?, ?>>
         implements IDependencyMap {
     private static final DependencyMap DEPENDENCY_MAP = new DependencyMap();
 
+    /**
+     * Returns the process-wide default dependency map.
+     *
+     * @return shared authoritative dependency map
+     */
     public static DependencyMap getDependencyMap() {
         return DEPENDENCY_MAP;
     }
