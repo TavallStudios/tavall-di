@@ -68,13 +68,13 @@ No tracked license file is present in the current repository tree.
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | PRIMARY | TavallStudios/tavall-di/README.md | 2026-09-27 12:29 PM PDT | Migration PR. |
+| GitHub | PRIMARY | TavallStudios/tavall-di/README.md | 2026-09-27 12:29 PM PDT | https://github.com/TavallStudios/tavall-di/pull/17. |
 | Notion | NOT_APPLICABLE | — | 2026-09-27 12:29 PM PDT | README files are not synchronized as Notion twins. |
 
 ### Update History
 
 | Timestamp | Surface | Event | Location | Previous Location | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-09-27 12:29 PM PDT | GitHub | UPDATED | TavallStudios/tavall-di/README.md | Same path | Migration PR. | Reworked the public README to describe the current project, module boundary, usage, and documentation. |
+| 2026-09-27 12:29 PM PDT | GitHub | UPDATED | TavallStudios/tavall-di/README.md | Same path | https://github.com/TavallStudios/tavall-di/pull/17. | Reworked the public README to describe the current project, module boundary, usage, and documentation. |
 
 </details>
