@@ -17,17 +17,64 @@ Tavall DI owns dependency discovery, metadata, instance lifecycle, typed depende
 - Dependency bundles and scoped access
 - Annotation processing and source lowering
 
+## Architectural Doctrine
+
+> **Tavall-owned behavior is interface-first and DI-managed by default.**
+
+```text
+behavior → interface / contract → tavall-di → implementation
+```
+
+Consumers depend on interfaces/contracts, not concrete implementations. Component graphs are wired and accessed via typed `DependencyAccess<...>`, while direct `DependencyMap` access is reserved for infrastructure and composition roots.
+
 ## Quick Start
 
 Add the published artifact to a Gradle project:
 
 ```kotlin
 dependencies {
-    implementation("org.tavall:tavall-di:<version>")
+    implementation("org.tavall:tavall-di:1.0.0")
 }
 ```
 
-Use the exact published version and repository access configured for your project. See the links below for API and contribution details.
+### 1. Define the Interface Contract
+
+```java
+public interface PlayerRewardService {
+    void rewardPlayer(UUID playerId, long amount);
+}
+```
+
+### 2. Implement and Register with `@DelegatesTo`
+
+```java
+@DelegatesTo(PlayerRewardService.class)
+public final class PlayerRewardServiceImpl
+        implements PlayerRewardService,
+                   DependencyAccess<EconomyService, AuditService> {
+
+    @Override
+    public void rewardPlayer(UUID playerId, long amount) {
+        getInstance().economyService().credit(playerId, amount);
+        getInstance().auditService().logReward(playerId, amount);
+    }
+}
+```
+
+### 3. Consume via Contract
+
+```java
+@DelegatesTo(PlayerRewardHandler.class)
+public final class PlayerRewardHandlerImpl
+        implements PlayerRewardHandler,
+                   DependencyAccess<PlayerRewardService> {
+
+    @Override
+    public void onEvent(RewardEvent event) {
+        getInstance().rewardPlayer(event.playerId(), event.amount());
+    }
+}
+```
 
 ## Project Structure
 

@@ -2,6 +2,14 @@
 
 Tavall DI owns dependency discovery, token delegation, metadata ownership, instance lifecycle, replacement, typed dependency access, and the source lowering required for expandable `DependencyAccess<...>` declarations.
 
+> **Governing Doctrine:** Tavall-owned behavior is interface-first and DI-managed by default.
+>
+> ```text
+> behavior → interface / contract → tavall-di → implementation
+> ```
+>
+> For any Tavall-owned class, the default assumption is that it participates in `tavall-di`. Do NOT ask "Should this class use DI?" Ask "What explicit reason does this class have not to be DI-managed?"
+
 This document is the authoritative final system contract. The detailed production and test access rankings live in [Tavall DI Access Styles](DI_ACCESS_STYLES.md).
 
 Tavall DI does not own application-domain bundle contents, platform lifecycle policy, event routing, persistence rules, or consumer-module architecture.
@@ -9,12 +17,15 @@ Tavall DI does not own application-domain bundle contents, platform lifecycle po
 # Design Sources
 
 - [`@DelegatesTo`](../src/main/java/org/tavall/dependency/annotations/DelegatesTo.java)
+- [`@CompositionBoundary`](../src/main/java/org/tavall/dependency/annotations/CompositionBoundary.java)
+- [`@ExplicitNonDi`](../src/main/java/org/tavall/dependency/annotations/ExplicitNonDi.java)
 - [`DependencyMap`](../src/main/java/org/tavall/dependency/maps/DependencyMap.java)
 - [`IDependencyMap`](../src/main/java/org/tavall/dependency/maps/interfaces/IDependencyMap.java)
 - [`DependencyMetaData`](../src/main/java/org/tavall/dependency/metadata/DependencyMetaData.java)
 - [`IDependencyMetaData`](../src/main/java/org/tavall/dependency/metadata/interfaces/IDependencyMetaData.java)
 - [`IDependencyAccess`](../src/main/java/org/tavall/dependency/IDependencyAccess.java)
 - [`DependencyAccess`](../src/main/java/org/tavall/dependency/DependencyAccess.java)
+- [`DiArchitectureSemantics`](../src/main/java/org/tavall/dependency/architecture/DiArchitectureSemantics.java)
 - [`DependencyAccessSourceLowerer`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowerer.java)
 - [`DependencyAccessSourceLowererMain`](../src/main/java/org/tavall/dependency/access/DependencyAccessSourceLowererMain.java)
 - [Tavall DI Access Styles](DI_ACCESS_STYLES.md)
@@ -49,15 +60,19 @@ dependency token
 
 Generated access classes, authored bundles, compatibility loaders, and direct map calls must resolve to that same metadata-owned instance. They must not create a second container or instance cache.
 
+- **Ordinary Consumers:** Depend on contracts/interfaces. Access dependencies through typed `DependencyAccess<...>`.
+- **Infrastructure & Composition Roots:** Configure `DependencyMap` and metadata directly at designated `@CompositionBoundary` sites. Ordinary consumers MUST NOT interact with `DependencyMap` directly.
+
 `DependencyMap` remains a `ConcurrentHashMap<Class<?>, IDependencyMetaData<?, ?>>`. Inherited map mutation stays available for advanced or framework use. Named Tavall DI APIs validate coherent registration and replacement; raw inherited operations remain intentionally sharp.
 
 # `@DelegatesTo` Pattern
 
-`@DelegatesTo` marks a DI-managed concrete. The annotated concrete token is implicit.
+`@DelegatesTo` marks a DI-managed concrete. Behavioral components SHOULD declare the interface contracts they satisfy:
 
 ```java
-@DelegatesTo
-public final class AchievementPointTitleResolver {
+@DelegatesTo(IAchievementPointTitleResolver.class)
+public final class AchievementPointTitleResolverImpl
+        implements IAchievementPointTitleResolver {
 }
 ```
 
@@ -174,13 +189,14 @@ DependencyAccess<PlayerRewardDependencies>
 Two or more authored parameters activate source lowering:
 
 ```java
-@DelegatesTo
+@DelegatesTo(IPlayerRewardHandler.class)
 public final class PlayerRewardHandler
-        implements DependencyAccess<
-                IPlayerData,
-                IEconomyService,
-                IRewardAuditLogger
-        > {
+        implements IPlayerRewardHandler,
+                   DependencyAccess<
+                           IPlayerData,
+                           IEconomyService,
+                           IRewardAuditLogger
+                   > {
 }
 ```
 

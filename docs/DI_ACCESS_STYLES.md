@@ -4,11 +4,27 @@
 
 This document ranks the supported Tavall DI access styles and explains when each style belongs in production code, tests, bootstrap code, or framework internals.
 
-It is an access-style guide. The authoritative runtime contract lives in [`TAVALL_DI_SYSTEM_FINAL.md`](TAVALL_DI_SYSTEM_FINAL.md).
+It is an access-style guide. The authoritative runtime contract lives in [`TAVALL_DI_SYSTEM_FINAL.md`](TAVALL_DI_SYSTEM_FINAL.md), and canonical architecture doctrine is governed by [`docs/quality/CODE_ARCHITECTURE.md`](https://github.com/TavallStudios/tavall-docs/blob/main/docs/quality/CODE_ARCHITECTURE.md).
+
+> **Governing Doctrine:** Tavall-owned behavior is interface-first and DI-managed by default.
+>
+> Ordinary consumers depend on contracts and access dependencies via typed `DependencyAccess<...>`.
+> `IDependencyMap` and `DependencyMap` are **DI infrastructure**; ordinary consumers MUST NOT interact with them directly.
+
+```text
+Ordinary consumer:
+consumer → contract (interface)
+    ↑
+DependencyAccess<Contract>
+    ↑
+DependencyMap / IDependencyMetaData (infrastructure)
+    ↓
+metadata-owned implementation
+```
 
 The core rule is:
 
-> `DependencyMap` and its mapped `IDependencyMetaData` remain the source of truth. Access styles are typed ergonomic layers over the same metadata-owned instances.
+> `DependencyMap` and its mapped `IDependencyMetaData` remain the underlying infrastructure source of truth. Consumer-facing access styles (`DependencyAccess<...>`) are typed ergonomic layers over the same metadata-owned instances.
 
 No access style may create a second container, rebuild dependencies, or maintain a competing instance cache.
 
@@ -16,31 +32,27 @@ No access style may create a second container, rebuild dependencies, or maintain
 
 ## Current Direction
 
-The target access model uses these core surfaces:
+The target access model distinguishes **ordinary consumers** from **DI infrastructure**:
 
-- `@DelegatesTo`
-- `DependencyAccess<...>`
-- `IDependencyAccess`
-- `IDependencyMap`
-- `DependencyMap`
-- `IDependencyMetaData`
-- generated access types for expanded generic declarations
-- authored domain bundles for grouped dependency boundaries
-- `DependencyLoader` only for tests, scoped fixtures, and compatibility during migration
+- **Ordinary Consumers:**
+  - `@DelegatesTo` (on concrete implementations registering interface contracts)
+  - `DependencyAccess<...>` (typed consumer interface)
+  - Generated companion access types for expanded generic declarations
+  - Authored domain bundles for cohesive dependency boundaries
+- **DI Infrastructure and Boundaries:**
+  - `IDependencyAccess`
+  - `IDependencyMap` / `DependencyMap`
+  - `IDependencyMetaData`
+  - `@CompositionBoundary` (composition roots, bootstrap, factories)
+  - `DependencyLoader` (tests, scoped fixtures, compatibility migration only)
 
-`IDependencyInjectableConcrete` and `IDependencyInjectableInterface` are not part of the target production style. `@DelegatesTo` is sufficient to declare a managed concrete and its tokens.
+`IDependencyInjectableConcrete` and `IDependencyInjectableInterface` are retired markers. `@DelegatesTo` is sufficient to declare a managed concrete and its tokens.
 
 ---
 
 ## Access Resolution Rule
 
-Every normal production lookup resolves through the real map:
-
-```java
-DependencyMap.getDependencyMap().getInstance(IPlayerData.class);
-```
-
-The map finds the metadata mapped to the token, and metadata returns the instance it owns:
+In production, Tavall DI resolves dependencies through the metadata-backed map:
 
 ```text
 dependency token
@@ -59,7 +71,9 @@ PlayerData.class
     -> same PlayerData instance
 ```
 
-Generated accessors and authored bundles must use this path. They must not use `DependencyLoaderAccess` for production lookup.
+**Consumer vs Infrastructure Boundary:**
+- **Ordinary production consumers** MUST use `DependencyAccess<...>` and typed accessors. They MUST NOT directly query `DependencyMap.getDependencyMap()` or `IDependencyMap`.
+- **DI bootstrap and composition roots** use `DependencyMap` / `IDependencyMap` to configure, register, and bootstrap the object graph.
 
 ---
 
@@ -70,12 +84,16 @@ Generated accessors and authored bundles must use this path. They must not use `
 ### Single-Parameter Mode
 
 ```java
+DependencyAccess<IEconomyService>
+```
+
+or with an authored domain bundle:
+
+```java
 DependencyAccess<PlayerRewardDependencies>
 ```
 
-One parameter is not expanded. It is resolved directly and is normally an authored domain bundle.
-
-A normal single dependency token is technically valid as well, although direct map access may be clearer when no access surface is needed.
+One parameter is not expanded. It is resolved directly via `getInstance()` as the typed contract or domain bundle.
 
 ### Expanded Mode
 
@@ -103,17 +121,18 @@ The framework should not confuse style guidance with a technical incapacity it d
 
 | Rank | Style | Production Use | Why |
 |---:|---|---|---|
-| 1 | Expanded `DependencyAccess` + named getters | First-class | Best daily style for a small, readable dependency set. |
-| 2 | Domain bundle + named getters | First-class | Best for larger or reusable domain boundaries. |
-| 3 | Direct expanded or bundle access | First-class | Good when the method is already clear without local getters. |
-| 4 | Direct `IDependencyMap#getInstance` | Supported | Best for infrastructure, one-off lookups, and framework composition. |
-| 5 | Local method variable | Supported | Keeps method-scoped dependency use local. |
+| 1 | Expanded `DependencyAccess` + typed companion getters | First-class | Default production style for multiple dependencies. |
+| 2 | Single-token `DependencyAccess<Contract>` | First-class | Default production style for a single dependency (`getInstance()` returns contract). |
+| 3 | Domain bundle + named getters | First-class | Best for larger or reusable domain boundaries. |
+| 4 | Direct expanded or bundle access | First-class | Good when the method is already clear without local getters. |
+| 5 | Local method variable via `DependencyAccess` | Supported | Keeps method-scoped dependency access clean and typed. |
 | 6 | Field-cached dependency | Conditional | Captures an instance and may not follow replacement. |
-| 7 | Direct metadata access | Framework/Internal | Lifecycle, diagnostics, verification, graphing, and replacement tooling. |
-| 8 | Wrapped interface access | Framework/Internal | Binding and wrapper verification. |
-| 9 | Wrapped concrete access | Framework/Internal | Concrete identity and lifecycle tooling. |
-| 10 | `DependencyLoader` access | Test/Compatibility | Scoped fixtures and legacy migration, not normal production lookup. |
-| 11 | Optional lookup | Boundary/Test | Only for dependencies that are genuinely optional. |
+| 7 | Direct `IDependencyMap` / `DependencyMap` access | **Infrastructure Only** | Restricted to DI bootstrap, composition roots, and framework adapters. Ordinary consumers MUST NOT use this. |
+| 8 | Direct metadata access | Framework/Internal | Lifecycle, diagnostics, verification, graphing, and replacement tooling. |
+| 9 | Wrapped interface access | Framework/Internal | Binding and wrapper verification. |
+| 10 | Wrapped concrete access | Framework/Internal | Concrete identity and lifecycle tooling. |
+| 11 | `DependencyLoader` access | Test/Compatibility | Scoped fixtures and legacy migration, not normal production lookup. |
+| 12 | Optional lookup | Boundary/Test | Only for dependencies that are genuinely optional. |
 
 ---
 
@@ -352,66 +371,72 @@ The call site is identical. The declaration decides whether `getInstance()` retu
 
 ---
 
-# Style 4: Direct Map Lookup
+# Style 4: Direct Map Lookup (Infrastructure & Composition Roots Only)
 
 ## Production Rank
 
-**#4: Supported production primitive.**
+**Infrastructure & Composition Boundaries Only.** Ordinary production consumers MUST NOT use direct map lookup.
 
 ## Shape
+
+```java
+@CompositionBoundary(type = CompositionBoundaryType.BOOTSTRAP)
+public final class ModuleBootstrap {
+    public void configure(DependencyMap map) {
+        map.register(IPlayerData.class, new PlayerDataImpl());
+    }
+}
+```
+
+Or low-level framework infrastructure:
 
 ```java
 IPlayerData playerData =
         DependencyMap.getDependencyMap().getInstance(IPlayerData.class);
 ```
 
-Or through `IDependencyAccess`:
-
-```java
-IPlayerData playerData =
-        getDependencyMap().getInstance(IPlayerData.class);
-```
-
 ## Use When
 
-- Infrastructure needs a one-off dependency.
-- A generated access declaration would add more ceremony than clarity.
-- Framework code is composing metadata or runtime services.
-- Bootstrap code needs the authoritative map directly.
+- DI bootstrap code is assembling or configuring the authoritative map.
+- A composition root or framework adapter is bridging an external container.
+- Low-level DI plumbing or test harness code interacts directly with DI internals.
 
-## Avoid When
+## Prohibited When
 
-- Repeated class-token calls hide a stable dependency boundary.
-- A handler would become easier to read with expanded access or a bundle.
-- The caller is bypassing metadata APIs to manipulate raw mapped values unintentionally.
-
-Direct map mutation remains available because `DependencyMap` extends `ConcurrentHashMap`. Prefer named APIs when metadata and lifecycle coherence matter. Raw `put`, `remove`, `compute`, and `clear` are deliberate low-level operations, not forbidden magic.
+- Ordinary domain, service, handler, orchestrator, or controller code needs dependencies.
+- A consumer should be declaring `DependencyAccess<...>` and depending on interfaces.
+- Direct map lookup is used to bypass interface-first contracts or DI architecture enforcement.
 
 ---
 
-# Style 5: Local Method Variables
+# Style 5: Local Method Variables via DependencyAccess
 
 ## Production Rank
 
-**#5: Supported for method-scoped use.**
+**Supported for method-scoped use.**
 
 ```java
-public void handlePlayerReward(long amount) {
-    IPlayerData playerData =
-            getDependencyMap().getInstance(IPlayerData.class);
-    IEconomyService economyService =
-            getDependencyMap().getInstance(IEconomyService.class);
+@DelegatesTo(IPlayerRewardHandler.class)
+public final class PlayerRewardHandler
+        implements IPlayerRewardHandler,
+                   DependencyAccess<IPlayerData, IEconomyService> {
 
-    playerData.addCoins(amount);
-    economyService.recordTransaction(amount);
+    @Override
+    public void handlePlayerReward(long amount) {
+        IPlayerData playerData = getInstance().playerData();
+        IEconomyService economyService = getInstance().economyService();
+
+        playerData.addCoins(amount);
+        economyService.recordTransaction(amount);
+    }
 }
 ```
 
 ## Use When
 
 - Dependencies are used only in one method.
-- A local name improves readability.
-- The method intentionally captures the current instance once.
+- A local name improves readability without needing class-level private getters.
+- The method intentionally captures the current instance once during method execution.
 
 ## Tradeoff
 
