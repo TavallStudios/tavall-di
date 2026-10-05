@@ -30,6 +30,8 @@ public final class DependencyAccessSourceLowerer {
     private static final Pattern PACKAGE_PATTERN = Pattern.compile("(?m)^\\s*package\\s+([\\w.]+)\\s*;");
     private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+[^;]+;");
     private static final Pattern CLASS_PATTERN = Pattern.compile("\\bclass\\s+([A-Za-z_$][A-Za-z0-9_$]*)");
+    private static final Pattern TYPE_DECLARATION_PATTERN = Pattern.compile(
+            "\\b(?:class|interface|enum|record)\\s+[A-Za-z_$][A-Za-z0-9_$]*");
 
     /**
      * Lowers all source files and adds generated access sources to the returned map.
@@ -147,12 +149,14 @@ public final class DependencyAccessSourceLowerer {
 
     private boolean hasDelegatesToAnnotation(String source, int classKeywordIndex) {
         String declarationPrefix = source.substring(0, classKeywordIndex);
-        int previousTypeEnd = Math.max(
-                declarationPrefix.lastIndexOf('}'),
-                declarationPrefix.lastIndexOf(';'));
-        String localPrefix = declarationPrefix.substring(Math.max(0, previousTypeEnd + 1));
-        return localPrefix.contains("@DelegatesTo")
-                || localPrefix.contains("@org.tavall.dependency.annotations.DelegatesTo");
+        int annotationStart = Math.max(
+                declarationPrefix.lastIndexOf("@DelegatesTo"),
+                declarationPrefix.lastIndexOf("@org.tavall.dependency.annotations.DelegatesTo"));
+        if (annotationStart < 0) {
+            return false;
+        }
+        String annotationAndDeclaration = declarationPrefix.substring(annotationStart);
+        return !TYPE_DECLARATION_PATTERN.matcher(annotationAndDeclaration).find();
     }
 
     private boolean isDependencyAccessSegment(String segment) {
