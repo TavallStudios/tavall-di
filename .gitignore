@@ -103,3 +103,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # Markdown documentation is source and remains trackable intentionally.
+
+# Tavall AI runtime state
+.tavallai/
