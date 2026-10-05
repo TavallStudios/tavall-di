@@ -9,8 +9,10 @@
 
 package org.tavall.dependency;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import org.tavall.dependency.maps.interfaces.IDependencyMap;
 
 /**
  * Typed dependency access contract after source lowering.
@@ -23,7 +25,28 @@ public interface DependencyAccess<ACCESS> extends IDependencyAccess {
      * Returns the metadata-owned access instance for this declaration.
      */
     default ACCESS getInstance() {
-        return getDependencyMap().getInstance(getDependencyAccessType());
+        IDependencyMap map = getDependencyMap();
+        Class<ACCESS> accessType = getDependencyAccessType();
+        ACCESS existing = map.findInstance(accessType);
+        if (existing != null) {
+            return existing;
+        }
+        try {
+            return map.getInstance(accessType);
+        } catch (IllegalStateException notRegisteredEx) {
+            try {
+                Constructor<ACCESS> constructor;
+                try {
+                    constructor = accessType.getConstructor(IDependencyMap.class);
+                    return map.registerInstance(accessType, constructor.newInstance(map));
+                } catch (NoSuchMethodException noMapCtor) {
+                    constructor = accessType.getConstructor();
+                    return map.registerInstance(accessType, constructor.newInstance());
+                }
+            } catch (ReflectiveOperationException reflectEx) {
+                throw notRegisteredEx;
+            }
+        }
     }
 
     /**

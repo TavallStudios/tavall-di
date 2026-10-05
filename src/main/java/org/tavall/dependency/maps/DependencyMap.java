@@ -131,6 +131,19 @@ public class DependencyMap
 
         IDependencyMetaData<?, ?> metaData = findMetaData(dependencyType);
         if (metaData == null) {
+            if (!dependencyType.isInterface() && !java.lang.reflect.Modifier.isAbstract(dependencyType.getModifiers())) {
+                try {
+                    java.lang.reflect.Constructor<T> constructor;
+                    try {
+                        constructor = dependencyType.getConstructor(IDependencyMap.class);
+                        return registerInstance(dependencyType, constructor.newInstance(this));
+                    } catch (NoSuchMethodException ignored) {
+                        constructor = dependencyType.getConstructor();
+                        return registerInstance(dependencyType, constructor.newInstance());
+                    }
+                } catch (ReflectiveOperationException ignored) {
+                }
+            }
             throw new IllegalStateException("No dependency registered for " + dependencyType.getName());
         }
         return metaData.getInstance(dependencyType);
