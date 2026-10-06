@@ -9,9 +9,11 @@
 
 package org.tavall.dependency.injection.helpers;
 
+import org.tavall.dependency.IDependencyFactory;
 import org.tavall.dependency.IDependencyInjectableInterface;
 import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.annotations.DelegatesToInterface;
+import org.tavall.dependency.annotations.ProvidedDependency;
 import org.tavall.dependency.injection.helpers.interfaces.IDependencyInjectorHelper;
 import org.tavall.dependency.maps.DependencyMap;
 import org.tavall.dependency.metadata.DependencyMetaData;
@@ -27,6 +29,7 @@ import org.tavall.logging.style.LogColor;
 
 import java.io.File;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -39,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 
 /**
- * Scans packages for {@link DelegatesTo} concretes and registers their tokens.
+ * Scans packages for managed Tavall dependencies and Tavall-owned factories for provided dependencies.
  */
 public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         implements IDependencyInjectorHelper<INTERFACE, INSTANCE> {
@@ -49,6 +52,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
 
     private final Set<Class<?>> loadedInterfaces = ConcurrentHashMap.newKeySet();
     private final Set<Class<?>> loadedConcretes = ConcurrentHashMap.newKeySet();
+    private final Set<Class<?>> loadedProviders = ConcurrentHashMap.newKeySet();
     @SuppressWarnings("rawtypes")
     private final IDependencyMetaDataHelper dependencyMetaDataHelper = new DependencyMetaDataHelper();
 
@@ -108,11 +112,13 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
 
         loadedInterfaces.clear();
         loadedConcretes.clear();
+        loadedProviders.clear();
         scanPackage(BASE_PACKAGE, loader);
         if (reload) {
             unregisterLoadedBindings();
         }
         registerDependenciesViaAnnotation();
+        registerProvidedDependencies();
         REGISTERED_BINDINGS.put(bootstrapKey, registeredBindingKeys());
         flushPendingCacheRegistryMetaData(loader);
 
@@ -207,9 +213,66 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
                 + registeredBindings);
     }
 
+    /**
+     * Creates third-party or otherwise foreign dependencies through Tavall-owned factories.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void registerProvidedDependencies() {
+        for (Class<?> providerType : loadedProviders) {
+            if (hasDelegationAnnotation(providerType)) {
+                throw new IllegalStateException("Dependency provider cannot also declare @DelegatesTo: "
+                        + providerType.getName());
+            }
+            if (!IDependencyFactory.class.isAssignableFrom(providerType)) {
+                throw new IllegalArgumentException("@ProvidedDependency type must implement IDependencyFactory: "
+                        + providerType.getName());
+            }
+
+            Set<Class<?>> dependencyTypes = resolveProvidedTypes(providerType);
+            if (dependencyTypes.isEmpty()) {
+                throw new IllegalArgumentException("@ProvidedDependency requires at least one dependency token: "
+                        + providerType.getName());
+            }
+
+            IDependencyFactory factory = instantiateProvider(providerType);
+            Class<?> primaryType = dependencyTypes.iterator().next();
+            Class<?>[] aliases = dependencyTypes.stream().skip(1).toArray(Class<?>[]::new);
+            DependencyMap.getDependencyMap().registerFactory((Class) primaryType, factory, aliases);
+        }
+    }
+
+    private IDependencyFactory<?> instantiateProvider(Class<?> providerType) {
+        try {
+            Constructor<?> constructor = providerType.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return (IDependencyFactory<?>) constructor.newInstance();
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Failed to instantiate dependency provider "
+                    + providerType.getName(), exception);
+        }
+    }
+
+    private Set<Class<?>> resolveProvidedTypes(Class<?> providerType) {
+        ProvidedDependency providedDependency = providerType.getAnnotation(ProvidedDependency.class);
+        Set<Class<?>> dependencyTypes = new LinkedHashSet<>();
+        if (providedDependency == null) {
+            return dependencyTypes;
+        }
+        for (Class<?> dependencyType : providedDependency.value()) {
+            if (dependencyType != null && dependencyType != Void.class) {
+                dependencyTypes.add(dependencyType);
+            }
+        }
+        return dependencyTypes;
+    }
+
     private void unregisterLoadedBindings() {
         for (Class<?> concreteType : loadedConcretes) {
             validDelegatedTypes(concreteType)
+                    .forEach(DependencyMap.getDependencyMap()::removeDependency);
+        }
+        for (Class<?> providerType : loadedProviders) {
+            resolveProvidedTypes(providerType)
                     .forEach(DependencyMap.getDependencyMap()::removeDependency);
         }
     }
@@ -217,6 +280,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
     private Set<Class<?>> registeredBindingKeys() {
         Set<Class<?>> bindings = new LinkedHashSet<>();
         loadedConcretes.forEach(concreteType -> bindings.addAll(validDelegatedTypes(concreteType)));
+        loadedProviders.forEach(providerType -> bindings.addAll(resolveProvidedTypes(providerType)));
         return bindings;
     }
 
@@ -323,8 +387,13 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             if (rawClass.isInterface()
                     && IDependencyInjectableInterface.class.isAssignableFrom(rawClass)) {
                 loadedInterfaces.add(rawClass);
-            } else if (isConcrete(rawClass) && hasDelegationAnnotation(rawClass)) {
-                loadedConcretes.add(rawClass);
+            } else if (isConcrete(rawClass)) {
+                if (hasDelegationAnnotation(rawClass)) {
+                    loadedConcretes.add(rawClass);
+                }
+                if (rawClass.isAnnotationPresent(ProvidedDependency.class)) {
+                    loadedProviders.add(rawClass);
+                }
             }
         } catch (Throwable ignored) {
             // Optional platform classes may be absent in a given runtime.
@@ -406,8 +475,9 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         }
 
         Log.info("[DI-Scan] " + LogColor.GRAY + "Loaded " + loadedInterfaces.size()
-                + " compatibility interfaces and " + loadedConcretes.size()
-                + " annotated concretes for package " + basePackage);
+                + " compatibility interfaces, " + loadedConcretes.size()
+                + " annotated concretes, and " + loadedProviders.size()
+                + " provided dependency factories for package " + basePackage);
     }
 
     private void scanModulePath(String basePackage) {

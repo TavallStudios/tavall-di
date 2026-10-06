@@ -9,6 +9,7 @@
 
 package org.tavall.dependency.maps;
 
+import org.tavall.dependency.IDependencyFactory;
 import org.tavall.dependency.maps.interfaces.IDependencyMap;
 import org.tavall.dependency.metadata.DependencyMetaData;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
@@ -17,8 +18,10 @@ import org.tavall.dependency.metadata.wrappers.DependencyInterface;
 import org.tavall.logging.Log;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -75,6 +78,62 @@ public class DependencyMap
         T instance = supplier.get();
         validateRegistration(dependencyType, instance);
         return registerSuppliedInstance(dependencyType, instance, supplier);
+    }
+
+    @Override
+    public <T> T registerFactory(
+            Class<T> dependencyType,
+            IDependencyFactory<? extends T> dependencyFactory,
+            Class<?>... aliases) {
+        if (dependencyType == null) {
+            throw new IllegalArgumentException("[DependencyMap] dependency key is required");
+        }
+        if (dependencyFactory == null) {
+            throw new IllegalArgumentException("[DependencyMap] dependency factory is required");
+        }
+
+        T instance = dependencyFactory.create(this);
+        validateRegistration(dependencyType, instance);
+
+        Set<Class<?>> dependencyTypes = new LinkedHashSet<>();
+        dependencyTypes.add(dependencyType);
+        if (aliases != null) {
+            for (Class<?> alias : aliases) {
+                if (alias == null || alias == Void.class) {
+                    continue;
+                }
+                if (!alias.isInstance(instance)) {
+                    throw new IllegalArgumentException("[DependencyMap] dependency instance must satisfy alias "
+                            + alias.getName());
+                }
+                dependencyTypes.add(alias);
+            }
+        }
+
+        return registerFactoryInstance(dependencyType, instance, dependencyFactory, dependencyTypes);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private <T> T registerFactoryInstance(
+            Class<T> dependencyType,
+            T instance,
+            IDependencyFactory<? extends T> dependencyFactory,
+            Set<Class<?>> dependencyTypes) {
+        Class concreteType = instance.getClass();
+        DependencyMetaData metaData = new DependencyMetaData();
+        metaData.bindDependencyInstance(
+                dependencyType,
+                concreteType,
+                new DependencyInterface(dependencyType),
+                new DependencyInstance(concreteType),
+                instance,
+                () -> dependencyFactory.create(this));
+
+        for (Class<?> exposedType : dependencyTypes) {
+            registerDependency(exposedType, metaData);
+        }
+        metaData.initializeDependencyInstance();
+        return dependencyType.cast(instance);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
