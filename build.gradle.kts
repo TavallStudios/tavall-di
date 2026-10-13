@@ -7,8 +7,7 @@ plugins {
 
 group = "org.tavall"
 extra["versionTagPrefix"] = "tavall-di"
-apply(from = "gradle/git-version.gradle.kts")
-version = extra["gitVersion"] as String
+version = providers.gradleProperty("tavallDiVersion").orElse("1.1.0").get()
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -17,6 +16,11 @@ java {
 }
 
 repositories {
+    mavenLocal()
+    val localSnapshots = file("/srv/dev-storage/deps/private/snapshots")
+    if (localSnapshots.isDirectory) {
+        maven(localSnapshots)
+    }
     mavenCentral()
     val githubToken = providers.environmentVariable("GITHUB_TOKEN").orNull
     if (!githubToken.isNullOrBlank()) {
@@ -90,6 +94,13 @@ publishing {
         }
     }
     repositories {
+        val localSnapshots = file("/srv/dev-storage/deps/private/snapshots")
+        if (localSnapshots.isDirectory) {
+            maven {
+                name = "localSnapshots"
+                url = uri(localSnapshots)
+            }
+        }
         val token = providers.environmentVariable("GITHUB_TOKEN")
         if (token.isPresent) {
             maven {
@@ -100,6 +111,15 @@ publishing {
                     password = token.get()
                 }
             }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        val exactSourceRepository = providers.gradleProperty("tavallPublishRepository").orNull
+        if (!exactSourceRepository.isNullOrBlank()) {
+            maven { name = "TavallExactSource"; url = uri(exactSourceRepository) }
         }
     }
 }
