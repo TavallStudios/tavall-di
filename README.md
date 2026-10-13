@@ -81,7 +81,7 @@ public final class PlayerRewardHandlerImpl
 `tavall-di/` (root Gradle project)
 - **Root Java source/build module** ← This Module — `src/main/java/`, `build.gradle.kts`
 
-Module Type: `LIBRARY`; Runtime Owner: `None`.
+Module Type: `SYSTEM`; Secondary Role: `LIBRARY`; Runtime Owner: consuming runtime.
 
 ## Documentation
 
@@ -94,7 +94,8 @@ Module Type: `LIBRARY`; Runtime Owner: `None`.
 
 ## Module Development
 
-- **Module Type:** `LIBRARY`
+- **Module Type:** `SYSTEM`
+- **Secondary Role:** `LIBRARY`
 - **Runtime Owner:** `None`
 - **Current PR Stack:** README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17); platform integration [#12](https://github.com/TavallStudios/tavall-di/pull/12) (draft to `main`); feature/architecture work [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#11](https://github.com/TavallStudios/tavall-di/pull/11), [#14](https://github.com/TavallStudios/tavall-di/pull/14), and CI localization [#13](https://github.com/TavallStudios/tavall-di/pull/13) remain unmerged against `staging/platform`.
 - **Module-local CI Definition:** Missing from current `main`: `.tavallci/ci.yaml` (required for a Tavall source/build module). This documentation PR records the gap and does not change CI configuration.
