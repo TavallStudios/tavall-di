@@ -2,7 +2,7 @@
 
 ```text
 <!-- tavall-staging:v1 -->
-Type: REPOSITORY_INTEGRATION
+Type: STAGING
 State: ACTIVE
 Branch: staging/platform
 Parent: main
