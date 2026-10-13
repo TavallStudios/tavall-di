@@ -47,3 +47,4 @@ dependencies:
 artifacts:
   - name: tavall-di
     path: build/libs/tavall-di-1.1.0.jar
+    channel: RELEASE
