@@ -1,5 +1,7 @@
 # tavall-di Progression
 
+> **Notion Twin:** [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266)
+
 > **Status:** Active progression record  
 > **Document Type:** `PROGRESSION`  
 > **Progression Scope:** `MODULE`  
@@ -115,3 +117,11 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 The extraction's exact-source architecture check rejected ordinary handler map fields. The canonical DI producer now supplies `GenerationOwnedDependencyAccess`, bound by metadata registration rather than consumer constructors or global lookup. Concrete/interface aliases share one metadata identity; replacement, removal and clear retire retained access. Explicit parent references do not create another owner or child mutation authority. Unbind hooks only invalidate nonblocking local state; owning runtimes perform teardown first.
 
 Local Java 25 `check` and isolated `1.1.0` Maven publication passed; 51 tests passed, including three generation-ownership/parent-reference tests. Exact-source hosted CI, integrated staging and consumer deployment remain separate gates. The branch targets existing staging PR #12 and does not replace active DI work.
+
+## 2026-10-13 — Generation binding main/package acceptance
+
+Implementation PR #20 integrated through staging #12; final main `86de4c75a6b09c5922ef60a2fb06111c5244fda8` passed Tavall CI `df2e3d10-a8a1-48c2-9b62-e71af0082582` (COMPILATION, UNIT_TESTS, QUALITY, ARTIFACT, REQUIRED_ALL). The internally published DI 1.1.0 JAR SHA-256 is `0722f8baccf490d996ff7b6c0868a1d6fd45cb8182c738c32c4ede2a929986da`, matching the accepted immutable CI artifact. DI 1.0.0 remains available.
+
+Generation-owned access binds through the existing DependencyMap metadata lifecycle. Tests cover coherent aliases, suppliers, replacement/removal/clear, failed initialization and borrowed parent metadata. Filesystem/NLEW accepted main checks and Cloud's 902 package-backed tests consume this API; Cloud runtime cutover is independently pending. Source-only publication does not claim every Tavall consumer has adopted the optional new access style.
+
+Successor staging #21 preserves the existing independent feature children; this documentation-only promotion does not replace their branches or scope.

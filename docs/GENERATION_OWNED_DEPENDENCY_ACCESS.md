@@ -1,5 +1,7 @@
 # Generation-owned dependency access
 
+> **Notion Twin:** [Generation-owned access](https://app.notion.com/p/3f838458ddfd81488d29f49a329f1789)
+
 `GenerationOwnedDependencyAccess` is canonical Tavall DI infrastructure. A managed consumer extends it, implements its meaningful interface and typed `DependencyAccess<...>`, and declares aliases with `@DelegatesTo`. Ordinary source has no map field, map parameter or static locator. `DependencyMap` binds the instance to its owning generation before initialization.
 
 Concrete and declared interface aliases share one metadata owner. Registering a second supported alias for the same instance reuses that metadata. Replacement/removal/clear retire the old binding, so retained consumers fail closed rather than falling back to the compatibility global map. Subclasses may invalidate their own nonblocking generation state through `onDependencyGenerationUnbound`; that hook must not block, perform dependency lookup or mutate a replacement. Runtime teardown precedes map removal.
