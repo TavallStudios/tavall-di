@@ -109,3 +109,9 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 | 2026-09-27 5:30 PM PDT | GitHub | `CREATED` | `docs/progression/TAVALL_DI_PROGRESSION.md` | — | PR [#17](https://github.com/TavallStudios/tavall-di/pull/17) at the current documentation branch; audited baseline `d8ecc02302522e3acecc586c3f9e918007c82ca3` | Created module-scoped Progression from GitHub source, build, history, and documentation evidence. |
 
 </details>
+
+## 2026-10-12 — Generation-owned access required by Filesystem/NLEW acceptance
+
+The extraction's exact-source architecture check rejected ordinary handler map fields. The canonical DI producer now supplies `GenerationOwnedDependencyAccess`, bound by metadata registration rather than consumer constructors or global lookup. Concrete/interface aliases share one metadata identity; replacement, removal and clear retire retained access. Explicit parent references do not create another owner or child mutation authority. Unbind hooks only invalidate nonblocking local state; owning runtimes perform teardown first.
+
+Local Java 25 `check` and isolated `1.1.0` Maven publication passed; 51 tests passed, including three generation-ownership/parent-reference tests. Exact-source hosted CI, integrated staging and consumer deployment remain separate gates. The branch targets existing staging PR #12 and does not replace active DI work.
