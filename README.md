@@ -138,3 +138,7 @@ No tracked license file is present in the current repository tree.
 | 2026-09-27 5:33 PM PDT | GitHub | UPDATED | TavallStudios/tavall-di/README.md | Same path | PR [#17](https://github.com/TavallStudios/tavall-di/pull/17) | Corrected the Documentation table row order; also corrected PR stack punctuation. |
 
 </details>
+
+## Generation ownership
+
+See [Generation-owned dependency access](docs/GENERATION_OWNED_DEPENDENCY_ACCESS.md) for managed registration, aliases, parent references and stale-reference rejection. Root CI is [`.tavallci/ci.yaml`](.tavallci/ci.yaml). This module is a `SYSTEM` with a secondary `LIBRARY` role, composed by its consuming runtime; it owns no independent process.
