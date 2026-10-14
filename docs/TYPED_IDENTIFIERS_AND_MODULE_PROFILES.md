@@ -1,55 +1,75 @@
-# Typed identifiers and module profiles
+# Typed Identifiers and Module Profiles
 
-Tavall DI provides two small generic building blocks for systems that select groups of runtime modules without falling back to magic string APIs.
+Tavall DI provides strongly typed, interface-first generic building blocks for systems that select groups of runtime modules without falling back to magic string APIs.
 
 ## CustomEnum
 
-`CustomEnum<T>` is an enum-like identifier base class for domains whose value set needs to remain extensible. A domain defines one concrete type and then declares constants or constructs values at its own boundary:
+`CustomEnum<T>` from `org.tavall.util.CustomEnum` (`org.tavall:tavall-custom-enum-java:1.0.0`) is the canonical base class for extensible enum-like identifier domains. Domains define a concrete type with a private constructor and bind registration through the canonical factory:
 
 ```java
 public final class ModuleId extends CustomEnum<ModuleId> {
-    private ModuleId(String value) {
-        super(value);
+    private ModuleId(String name) {
+        super(name);
     }
 
-    public static ModuleId of(String value) {
-        return new ModuleId(value);
+    public static ModuleId of(String name) {
+        return register(ModuleId.class, name, ModuleId::new);
     }
 }
 ```
 
-Application code uses `ModuleId`, not `String`. `value()` exists for serialization/configuration boundaries. Equality is domain-aware, so a `ModuleId("lobby")` is not equal to an unrelated identifier domain carrying the same text.
+Application code uses `ModuleId`, not raw `String`. Registration guarantees canonical identity equality (`id1 == id2`), eliminating string comparisons across module boundaries.
 
-This is deliberately not a registry and not a Java `enum`: adding a profile or module identifier must not require modifying a central Tavall DI enum.
+## Module Profiles and Deployment Profiles
 
-## Module profiles
+### `ModuleProfile<M, P>`
 
-`ModuleProfile<M, P>` declares the modules explicitly requested by a named profile. It does not encode platform policy or product names.
-
-`ModuleProfileResolver` accepts:
-
-- a profile;
-- the caller-owned set of available modules;
-- a caller-owned function that returns each module's required technical dependencies.
-
-It produces an `EffectiveModuleProfile` containing the requested module set and a deduplicated dependency-first load order. Unknown modules and required-dependency cycles fail explicitly.
-
-Optional dependencies and product-specific profile composition remain caller policy. Tavall DI must not know that a Minecraft deployment has concepts such as Lobby, FFA, Kingdoms, Paper, or Velocity.
-
-Example caller-side profile:
+Declares the modules requested by a profile. Preserves the simplified selection API:
 
 ```java
-ModuleProfile<ModuleId, ModuleProfileId> lobby = ModuleProfile.of(
-        ModuleProfileIds.LOBBY,
-        ModuleIds.LOBBY,
-        ModuleIds.ESSENTIALS
-);
-
-EffectiveModuleProfile<ModuleId, ModuleProfileId> effective = resolver.resolve(
-        lobby,
-        moduleCatalog.ids(),
-        moduleCatalog::requiredDependencies
+ModuleProfile<ModuleId, ProfileId> profile = ModuleProfile.of(
+        ProfileId.of("lobby"),
+        ModuleId.of("tavall-paper-core"),
+        ModuleId.of("tavall-lobby")
 );
 ```
 
-This separates **selection policy** (the profile) from **technical correctness** (required dependency closure), while keeping both strongly typed.
+### `DeploymentModuleProfile<M, P, R>`
+
+Immutable typed per-deployment profile specification containing:
+- Positive schema version (`DEFAULT_SCHEMA_VERSION = 1L`)
+- Profile identity (`profileId` / `id`)
+- Runtime target identity (`runtimeTarget`)
+- Configuration generation index (`configurationGeneration`)
+- Explicitly enabled modules
+- Explicitly disabled modules
+
+Enabled and disabled module sets are mutually exclusive; conflicts are rejected upon instantiation. Lossy projection to unversioned profiles is intentionally omitted so downstream runtime composition preserves all deployment constraints.
+
+```java
+DeploymentModuleProfile<ModuleId, ProfileId, RuntimeTargetId> profile = DeploymentModuleProfile.<ModuleId, ProfileId, RuntimeTargetId>builder()
+        .schemaVersion(1L)
+        .profileId(ProfileId.of("web-commerce-stripe"))
+        .runtimeTarget(RuntimeTargetId.of("web-commerce"))
+        .configurationGeneration(10L)
+        .enable(ModuleId.of("tavall-pay"), ModuleId.of("tavall-pay-stripe"))
+        .disable(ModuleId.of("tavall-pay-paypal"))
+        .build();
+```
+
+## Resolver: `IModuleProfileResolver` and `ModuleProfileResolver`
+
+The resolver is interface-first and DI-managed, annotated with `@DelegatesTo(IModuleProfileResolver.class)`.
+
+It produces an `EffectiveDeploymentModuleProfile` (or `EffectiveModuleProfile`) containing the validated configuration, requested modules, disabled modules, and a deduplicated dependency-first `loadOrder`.
+
+### Safety Guarantees
+- **Schema Version Validation:** Rejects unsupported schema versions (`IllegalArgumentException`). Only supported schema versions (currently `1L`) pass resolution.
+- **Disabled Module Catalog Validation:** All explicitly disabled module IDs must exist in the available artifact catalog. Typos or missing disabled modules fail closed (`IllegalArgumentException`).
+- **Disabled Required Dependencies:** If an enabled module requires a dependency that is explicitly disabled, resolution fails closed with `IllegalStateException` and never silently enables the disabled module.
+- **Enabled/Disabled Conflict:** Profiles with overlapping enabled and disabled sets are rejected.
+- **Unavailable Modules:** Enabled modules not present in the catalog fail with `IllegalArgumentException`.
+- **Cycles:** Dependency cycles fail with `IllegalStateException`.
+
+### Architectural Fences
+Profile resolution is strictly a desired-composition calculator. It does not perform durable storage persistence, runtime host process control, or dynamic live module state transitions. Those responsibilities belong to `tavall-registry` and consumer runtime hosts.

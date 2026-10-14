@@ -1,6 +1,6 @@
 package org.tavall.dependency.module;
 
-import org.tavall.identity.CustomEnum;
+import org.tavall.util.CustomEnum;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -9,7 +9,12 @@ import java.util.Set;
 
 /**
  * Named selection of runtime modules. A profile describes requested modules only; technical
- * required-dependency closure belongs to {@link ModuleProfileResolver}.
+ * required-dependency closure belongs to {@link IModuleProfileResolver}.
+ *
+ * @param <M> module identifier type extending canonical {@link CustomEnum}
+ * @param <P> profile identifier type extending canonical {@link CustomEnum}
+ * @param id the profile identifier
+ * @param modules the set of requested modules
  */
 public record ModuleProfile<M extends CustomEnum<M>, P extends CustomEnum<P>>(
         P id,
