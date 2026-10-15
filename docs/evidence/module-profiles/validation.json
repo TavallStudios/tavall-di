@@ -1,0 +1,166 @@
+{
+  "acceptance": "TESTED_LOCALLY",
+  "artifactBoundary": "Local JAR digest only; no hosted CI or immutable publication acceptance yet.",
+  "command": "./gradlew --no-daemon check",
+  "failures": 0,
+  "java": "25.0.1",
+  "localJarSha256": "569639170684e36ecd2591e5527264db2634396539da77b08994b9b5f04b2fa1",
+  "logSha256": "5535517b90f34bdb705c8b955c444850ed63c95d9eac9879fa372cd0921fcdc3",
+  "plannedCiSourceDependencies": [
+    {
+      "repository": "TavallStudios/tavall-logging",
+      "sha": "e047172ab7c2be005baf0b2c4b46e230ead78417"
+    },
+    {
+      "repository": "TavallStudios/tavall-custom-enum-java",
+      "sha": "2284168910f755a0d13a68fbc821cedc14d0a49b"
+    }
+  ],
+  "scope": "DI module-profile source only",
+  "skipped": 0,
+  "sourceBinding": "All tested executable inputs were unchanged when committed; subsequent evidence commit contains reports only.",
+  "suites": [
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.maps.GenerationOwnedDependencyAccessTest",
+      "tests": 3
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.metadata.MultipleInterfaceInjectionTest",
+      "tests": 1
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.injection.helpers.DependencyInjectorHelperTest",
+      "tests": 8
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.composition.DependencyBundleAccessIntegrationTest",
+      "tests": 2
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.access.DependencyAccessFiveDependencyIntegrationTest",
+      "tests": 1
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.maps.DependencyMapTest",
+      "tests": 4
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.metadata.DependencyMetaDataHelperTest",
+      "tests": 1
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.access.DependencyAccessSourceLowererTest",
+      "tests": 6
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.metadata.wrappers.DependencyInterfaceTest",
+      "tests": 2
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.annotations.DelegatesToTest",
+      "tests": 3
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.injection.helpers.SetupAndRunDITest",
+      "tests": 1
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.composition.DependencyBundleAliasAccessIntegrationTest",
+      "tests": 1
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.metadata.wrappers.DependencyInstanceTest",
+      "tests": 2
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.access.DependencyAccessProductionIntegrationTest",
+      "tests": 1
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.metadata.DependencyMetaDataTest",
+      "tests": 3
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.access.DependencyAccessGrantProcessorTest",
+      "tests": 2
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.module.ModuleProfileResolverTest",
+      "tests": 15
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.DependencyLoaderAccessTest",
+      "tests": 7
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite": "org.tavall.dependency.DependencyLifecycleTest",
+      "tests": 3
+    }
+  ],
+  "testedSource": "a41f87599940e2fe9304d5232eb20d29da528813",
+  "timestamp": "2026-10-14T01:27:20.425773+00:00",
+  "totalTests": 66,
+  "unrun": [
+    "Hosted exact-source CI",
+    "Package publication",
+    "Pay/Content runtime integration",
+    "Deployment and rollback"
+  ]
+}

@@ -90,7 +90,25 @@ Module Type: `SYSTEM`; Secondary Role: `LIBRARY`; Runtime Owner: consuming runti
 | [Module Progression](docs/progression/TAVALL_DI_PROGRESSION.md) | Audited module implementation, integration, validation, and history. |
 | [Tavall DI System](docs/TAVALL_DI_SYSTEM_FINAL.md) | System ownership and contract. |
 | [DI Access Styles](docs/DI_ACCESS_STYLES.md) | Supported production and test access patterns. |
+| [Module Profiles](docs/module-profiles/README.md) | Per-deployment module profile architecture, identity boundaries, and resolution semantics. |
+| [Typed Identifiers & Profiles](docs/TYPED_IDENTIFIERS_AND_MODULE_PROFILES.md) | Extensible CustomEnum identifiers and profile contracts. |
 | [Contributing](CONTRIBUTING.md) | Contribution and development notes. |
+
+## Module Profiles and Deployment Composition
+
+Tavall DI provides `DeploymentModuleProfile`, `ModuleProfile`, and the interface-first `IModuleProfileResolver` (`ModuleProfileResolver`) to resolve per-deployment module composition and topological load ordering.
+
+### Identity Boundaries
+
+- **Artifact Identity:** Immutable bytes produced by CI (JAR digest / artifact coordinates).
+- **Deployment Identity:** Designated execution host or runtime target (`RuntimeTargetId`).
+- **Module Identity:** Functional capability identified by a canonical `CustomEnum` (`ModuleId`).
+- **Module Profile:** Desired composition (`DeploymentModuleProfile` / `ModuleProfile`), specifying schema version, configuration generation, explicitly enabled modules, and explicitly disabled modules.
+- **Runtime State:** Observed activation and lifecycle health within the runtime host (`tavall-registry`).
+
+> [!NOTE]
+> Profile resolution computes desired module composition and topological load order. It does not perform durable persistence, runtime host process supervision, or dynamic live module state transitions.
+
 
 ## Module Development
 

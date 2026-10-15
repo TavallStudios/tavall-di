@@ -39,6 +39,14 @@ dependencies:
     substitutions: 'org.tavall:tavall-logging=:'
     sourceVersion: 1.0.0
     versionProperty: tavallVersion
+  - kind: source
+    identity: TavallStudios/tavall-custom-enum-java
+    role: SHARED_DEP
+    selector: required-source
+    digest: 2284168910f755a0d13a68fbc821cedc14d0a49b
+    substitutions: 'org.tavall:tavall-custom-enum-java=:'
+    sourceVersion: 1.0.0
+    versionProperty: tavallVersion
   - kind: artifact
     identity: tavall-public-maven-mirror
     role: MAVEN_MIRROR
@@ -46,5 +54,5 @@ dependencies:
     digest: c945956c42d0e49f28ec925d62956d94668c0b3fab0293d9dd2db028b26d9cd2
 artifacts:
   - name: tavall-di
-    path: build/libs/tavall-di-1.1.0.jar
-    channel: RELEASE
+    path: build/libs/tavall-di-0.2.0-SNAPSHOT.jar
+    channel: SNAPSHOT
