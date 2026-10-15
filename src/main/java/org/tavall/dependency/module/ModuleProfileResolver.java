@@ -24,14 +24,13 @@ import java.util.function.Function;
  * <p>The resolver is intentionally ignorant of any product, platform, or server type. Callers own
  * the module catalog and provide only the required-dependency relation for their module domain.</p>
  *
- * <p><b>Safety Guarantees:</b>
+ * <p><b>Safety Guarantees:</b></p>
  * <ul>
  *   <li>Rejects conflict where a module is both enabled and disabled.</li>
  *   <li>Fails closed when an enabled module requires an explicitly disabled dependency; does not silently re-enable.</li>
  *   <li>Rejects unknown/unavailable modules in requested sets and dependency graphs.</li>
  *   <li>Rejects dependency cycles.</li>
  * </ul>
- * </p>
  *
  * @param <M> module identifier type extending canonical {@link CustomEnum}
  * @param <P> profile identifier type extending canonical {@link CustomEnum}

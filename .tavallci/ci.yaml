@@ -26,6 +26,7 @@ checks:
     executor: gradle
     tasks:
       - verifyJarContents
+      - javadoc
   artifact:
     executor: gradle
     tasks:
@@ -54,5 +55,5 @@ dependencies:
     digest: c945956c42d0e49f28ec925d62956d94668c0b3fab0293d9dd2db028b26d9cd2
 artifacts:
   - name: tavall-di
-    path: build/libs/tavall-di-1.2.0.jar
-    channel: RELEASE
+    path: build/libs/tavall-di-0.3.0-SNAPSHOT.jar
+    channel: SNAPSHOT
