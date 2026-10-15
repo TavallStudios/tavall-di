@@ -7,7 +7,7 @@ plugins {
 
 group = "org.tavall"
 extra["versionTagPrefix"] = "tavall-di"
-version = providers.gradleProperty("tavallDiVersion").orElse("1.1.0").get()
+version = providers.gradleProperty("tavallDiVersion").orElse("1.1.1-SNAPSHOT").get()
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
