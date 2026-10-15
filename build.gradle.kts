@@ -7,7 +7,7 @@ plugins {
 
 group = "org.tavall"
 extra["versionTagPrefix"] = "tavall-di"
-version = providers.gradleProperty("tavallDiVersion").orElse("1.1.0").get()
+version = providers.gradleProperty("tavallDiVersion").orElse("1.2.0").get()
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -30,6 +30,7 @@ repositories {
             "tavall-concurrency",
             "tavall-reflection",
             "tavall-di",
+            "tavall-custom-enum-java",
             "tavall-eventbus",
             "tavall-cache",
             "tavall-database",
@@ -49,6 +50,7 @@ repositories {
 
 dependencies {
     api("org.tavall:tavall-logging:1.0.0")
+    api("org.tavall:tavall-custom-enum-java:1.0.0")
     testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.apiguardian:apiguardian-api:1.1.2")
