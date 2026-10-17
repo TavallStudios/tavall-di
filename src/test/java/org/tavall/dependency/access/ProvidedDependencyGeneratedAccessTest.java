@@ -98,6 +98,123 @@ class ProvidedDependencyGeneratedAccessTest {
     }
 
     @Test
+    void managedSelfAccessDoesNotCreateAnInitializationCycle() throws Exception {
+        var output = DependencyAccessTestCompiler.compileSources(Map.of("provided.self.Component", """
+                package provided.self;
+                @org.tavall.dependency.annotations.DelegatesTo
+                public final class Component implements org.tavall.dependency.DependencyAccess<Component> {
+                    public boolean initialized;
+                    @org.tavall.dependency.annotations.PostConstruct public void initialize() {
+                        if (getInstance() != this) throw new IllegalStateException("different self");
+                        initialized = true;
+                    }
+                }
+                """));
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.self");
+            helper.setupDISystem(loader);
+            Object component = map.getInstance(loader.loadClass("provided.self.Component"));
+            assertTrue(component.getClass().getField("initialized").getBoolean(component));
+        } finally { map.clear(); }
+    }
+
+    @Test
+    void producedObjectInputsAreInitializedBeforeItsLifecycle() throws Exception {
+        Map<String, String> sources = new LinkedHashMap<>();
+        sources.put("provided.product.Configuration", """
+                package provided.product;
+                @org.tavall.dependency.annotations.DelegatesTo
+                public final class Configuration {
+                    public boolean ready;
+                    @org.tavall.dependency.annotations.PostConstruct public void initialize() { ready = true; }
+                }
+                """);
+        sources.put("provided.product.Product", """
+                package provided.product;
+                public final class Product implements org.tavall.dependency.DependencyAccess<Product> {
+                    @org.tavall.dependency.annotations.Inject private Configuration configuration;
+                    @org.tavall.dependency.annotations.Inject private String label;
+                    public boolean ready;
+                    @org.tavall.dependency.annotations.PostConstruct public void initialize() {
+                        if (!configuration.ready || !"ready".equals(label) || getInstance() != this) throw new IllegalStateException("uninitialized product inputs");
+                        ready = true;
+                    }
+                }
+                """);
+        sources.put("provided.product.ProductFactory", """
+                package provided.product;
+                @org.tavall.dependency.annotations.ProvidedDependency(Product.class)
+                public final class ProductFactory implements org.tavall.dependency.IDependencyFactory<Product> {
+                    public Product create() { return new Product(); }
+                }
+                """);
+        sources.put("provided.product.LabelFactory", """
+                package provided.product;
+                @org.tavall.dependency.annotations.ProvidedDependency(String.class)
+                public final class LabelFactory implements org.tavall.dependency.IDependencyFactory<String> {
+                    public String create() { return "ready"; }
+                }
+                """);
+        var output = DependencyAccessTestCompiler.compileSources(sources);
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.product");
+            helper.setupDISystem(loader);
+            Object product = map.getInstance(loader.loadClass("provided.product.Product"));
+            assertTrue(product.getClass().getField("ready").getBoolean(product));
+        } finally { map.clear(); }
+    }
+
+    @Test
+    void failedBootstrapRollsBackCompletedProvidersAndCanRetryWithoutClearingTheMap() throws Exception {
+        Map<String, String> sources = new LinkedHashMap<>();
+        sources.put("provided.retry.ReadyFactory", """
+                package provided.retry;
+                @org.tavall.dependency.annotations.ProvidedDependency(String.class)
+                public final class ReadyFactory implements org.tavall.dependency.IDependencyFactory<String> {
+                    public static int creations;
+                    public String create() { creations++; return "ready"; }
+                }
+                """);
+        sources.put("provided.retry.TransientFactory", """
+                package provided.retry;
+                @org.tavall.dependency.annotations.ProvidedDependency(Integer.class)
+                public final class TransientFactory implements org.tavall.dependency.IDependencyFactory<Integer>, org.tavall.dependency.DependencyAccess<String> {
+                    public static boolean fail = true;
+                    public Integer create() {
+                        if (!"ready".equals(getInstance())) throw new IllegalStateException("missing prerequisite");
+                        if (fail) throw new IllegalStateException("transient failure");
+                        return 7;
+                    }
+                }
+                """);
+        var output = DependencyAccessTestCompiler.compileSources(sources);
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        Long unrelated = map.registerInstance(Long.class, 123L);
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.retry");
+            assertThrows(IllegalStateException.class, () -> helper.setupDISystem(loader));
+            assertEquals(1, loader.loadClass("provided.retry.ReadyFactory").getField("creations").getInt(null));
+            assertNull(map.findInstance(String.class));
+            assertNull(map.findInstance(Integer.class));
+            assertNull(map.findMetaData(loader.loadClass("provided.retry.ReadyFactory")));
+            assertSame(unrelated, map.getInstance(Long.class));
+            loader.loadClass("provided.retry.TransientFactory").getField("fail").setBoolean(null, false);
+            helper.setupDISystem(loader);
+            assertEquals("ready", map.getInstance(String.class));
+            assertEquals(7, map.getInstance(Integer.class));
+            assertEquals(2, loader.loadClass("provided.retry.ReadyFactory").getField("creations").getInt(null));
+        } finally { map.clear(); }
+    }
+
+    @Test
     void scannerRejectsEveryNonConcreteProviderDeclaration() throws Exception {
         for (String declaration : new String[] {
                 "public abstract class Invalid implements org.tavall.dependency.IDependencyFactory<String> {}",

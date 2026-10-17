@@ -84,44 +84,43 @@ public class DependencyMap
     }
 
     @Override
-    public synchronized <T> T registerFactory(
-            Class<T> dependencyType,
-            IDependencyFactory<? extends T> dependencyFactory,
-            Class<?>... aliases) {
-        if (dependencyType == null) {
-            throw new IllegalArgumentException("[DependencyMap] dependency key is required");
-        }
-        if (dependencyFactory == null) {
-            throw new IllegalArgumentException("[DependencyMap] dependency factory is required");
-        }
+    public synchronized <T> T registerFactory(Class<T> dependencyType,
+            IDependencyFactory<? extends T> dependencyFactory, Class<?>... aliases) {
+        return registerFactory(dependencyType, dependencyFactory, instance -> { }, aliases);
+    }
 
-        boolean registeredFactory = bindFactoryAccess(dependencyFactory);
-        T instance;
+    /** Bootstrap infrastructure resolves produced-object prerequisites before its lifecycle runs. */
+    public synchronized <T> T registerFactory(Class<T> dependencyType,
+            IDependencyFactory<? extends T> dependencyFactory,
+            java.util.function.Consumer<? super T> beforeInitialization, Class<?>... aliases) {
+        if (dependencyType == null || dependencyFactory == null || beforeInitialization == null) {
+            throw new IllegalArgumentException("[DependencyMap] dependency token, factory and initializer are required");
+        }
+        IDependencyMetaData<?, ?> previousFactory = findMetaData(dependencyFactory.getClass());
         try {
-            instance = dependencyFactory.create();
+            bindFactoryAccess(dependencyFactory);
+            T instance = dependencyFactory.create();
             validateRegistration(dependencyType, instance);
+            Set<Class<?>> dependencyTypes = new LinkedHashSet<>();
+            dependencyTypes.add(dependencyType);
+            if (aliases != null) {
+                for (Class<?> alias : aliases) {
+                    if (alias == null || alias == Void.class) continue;
+                    if (!alias.isInstance(instance)) {
+                        throw new IllegalArgumentException("[DependencyMap] dependency instance must satisfy alias " + alias.getName());
+                    }
+                    dependencyTypes.add(alias);
+                }
+            }
+            return registerFactoryInstance(dependencyType, instance, dependencyFactory, dependencyTypes, beforeInitialization);
         } catch (RuntimeException | Error failure) {
-            if (registeredFactory) removeDependency(dependencyFactory.getClass());
+            IDependencyMetaData<?, ?> currentFactory = findMetaData(dependencyFactory.getClass());
+            if (previousFactory == null && currentFactory != null && currentFactory.getDependencyInstance() == dependencyFactory) {
+                try { removeDependency(dependencyFactory.getClass()); }
+                catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+            }
             throw failure;
         }
-
-        Set<Class<?>> dependencyTypes = new LinkedHashSet<>();
-        dependencyTypes.add(dependencyType);
-        if (aliases != null) {
-            for (Class<?> alias : aliases) {
-                if (alias == null || alias == Void.class) {
-                    continue;
-                }
-                if (!alias.isInstance(instance)) {
-                    if (registeredFactory) removeDependency(dependencyFactory.getClass());
-                    throw new IllegalArgumentException("[DependencyMap] dependency instance must satisfy alias "
-                            + alias.getName());
-                }
-                dependencyTypes.add(alias);
-            }
-        }
-
-        return registerFactoryInstance(dependencyType, instance, dependencyFactory, dependencyTypes);
     }
 
     /** Binds scoped factory inputs through the same existing generation lifecycle as consumers. */
@@ -146,7 +145,8 @@ public class DependencyMap
             Class<T> dependencyType,
             T instance,
             IDependencyFactory<? extends T> dependencyFactory,
-            Set<Class<?>> dependencyTypes) {
+            Set<Class<?>> dependencyTypes,
+            java.util.function.Consumer<? super T> beforeInitialization) {
         Class concreteType = instance.getClass();
         DependencyMetaData metaData = new DependencyMetaData();
         metaData.bindDependencyInstance(
@@ -157,11 +157,23 @@ public class DependencyMap
                 instance,
                 dependencyFactory::create);
 
+        Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>();
         for (Class<?> exposedType : dependencyTypes) {
-            registerDependency(exposedType, metaData);
+            IDependencyMetaData<?, ?> displaced = put(exposedType, metaData);
+            if (displaced != null) previous.put(exposedType, displaced);
         }
-        metaData.initializeDependencyInstance();
-        return dependencyType.cast(instance);
+        try {
+            beforeInitialization.accept(instance);
+            metaData.initializeDependencyInstance();
+            return dependencyType.cast(instance);
+        } catch (RuntimeException | Error failure) {
+            for (Class<?> token : dependencyTypes) {
+                IDependencyMetaData<?, ?> displaced = previous.get(token);
+                if (displaced == null) super.remove(token, metaData);
+                else super.replace(token, metaData, displaced);
+            }
+            throw failure;
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

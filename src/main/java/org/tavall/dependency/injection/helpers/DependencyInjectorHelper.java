@@ -123,15 +123,41 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             unregisterLoadedBindings();
         }
         validateProvidedDeclarations();
-        BootstrapInitialization initialization = new BootstrapInitialization(publishAnnotatedDependencies());
-        for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
-        for (IDependencyMetaData<?, ?> metadata : initialization.pending) initializeManaged(metadata, initialization);
-        REGISTERED_BINDINGS.put(bootstrapKey, registeredBindingKeys());
-        flushPendingCacheRegistryMetaData(loader);
+        DependencyMap map = DependencyMap.getDependencyMap();
+        synchronized (map) {
+            java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>(map);
+            try {
+                BootstrapInitialization initialization = new BootstrapInitialization(publishAnnotatedDependencies());
+                for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
+                for (IDependencyMetaData<?, ?> metadata : initialization.pending) initializeManaged(metadata, initialization);
+                flushPendingCacheRegistryMetaData(loader);
+                REGISTERED_BINDINGS.put(bootstrapKey, registeredBindingKeys());
+            } catch (RuntimeException | Error failure) {
+                rollbackBootstrap(previous, failure);
+                throw failure;
+            }
+        }
 
         Log.warn(reload
                 ? "[DI] ===== DI System Reload Ended ====="
                 : "[DI] ===== DI System Initialization Ended =====");
+    }
+
+    /** Removes only this scan's changed bindings and restores any displaced metadata. */
+    private void rollbackBootstrap(java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous, Throwable failure) {
+        DependencyMap map = DependencyMap.getDependencyMap();
+        Set<Class<?>> bindings = registeredBindingKeys();
+        for (Class<?> token : bindings) {
+            IDependencyMetaData<?, ?> current = map.findMetaData(token);
+            if (current != null && current != previous.get(token)) {
+                try { map.removeDependency(token); }
+                catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+            }
+        }
+        for (Class<?> token : bindings) {
+            IDependencyMetaData<?, ?> original = previous.get(token);
+            if (original != null) map.registerDependency(token, original);
+        }
     }
 
     @Override
@@ -232,8 +258,17 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void registerProvidedDependencies() {
         validateProvidedDeclarations();
-        BootstrapInitialization initialization = new BootstrapInitialization(Set.of());
-        for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
+        DependencyMap map = DependencyMap.getDependencyMap();
+        synchronized (map) {
+            java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>(map);
+            try {
+                BootstrapInitialization initialization = new BootstrapInitialization(Set.of());
+                for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
+            } catch (RuntimeException | Error failure) {
+                rollbackBootstrap(previous, failure);
+                throw failure;
+            }
+        }
     }
 
     private void validateProvidedDeclarations() {
@@ -265,7 +300,8 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             Set<Class<?>> tokens = resolveProvidedTypes(providerType);
             Class<?> primaryType = tokens.iterator().next();
             Class<?>[] aliases = tokens.stream().skip(1).toArray(Class<?>[]::new);
-            DependencyMap.getDependencyMap().registerFactory((Class) primaryType, factory, aliases);
+            DependencyMap.getDependencyMap().registerFactory((Class) primaryType, factory,
+                    instance -> initializeDeclaredInputs(instance, initialization), aliases);
             initialization.completedProviders.add(providerType);
         } finally {
             initialization.activeProviders.remove(providerType);
@@ -288,7 +324,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
 
     private void initializeDeclaredInputs(Object instance, BootstrapInitialization initialization) {
         if (instance instanceof DependencyAccess<?> access) {
-            initializeToken(access.getDependencyAccessType(), initialization);
+            initializeToken(access.getDependencyAccessType(), initialization, instance);
         }
         Class<?> current = instance.getClass();
         while (current != null && current != Object.class) {
@@ -296,7 +332,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
                 Inject inject = field.getAnnotation(Inject.class);
                 if (inject != null && !Modifier.isStatic(field.getModifiers())) {
                     if (!inject.optional() || DependencyMap.getDependencyMap().isInstanceRegistered(field.getType())
-                            || providedTypeOwner(field.getType()) != null) initializeToken(field.getType(), initialization);
+                            || providedTypeOwner(field.getType()) != null) initializeToken(field.getType(), initialization, instance);
                 }
             }
             current = current.getSuperclass();
@@ -306,7 +342,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             for (Method method : instance.getClass().getDeclaredMethods()) {
                 if (!Modifier.isStatic(method.getModifiers()) && method.getParameterCount() == 0
                         && method.getReturnType() != void.class && method.getReturnType() != IDependencyMap.class) {
-                    initializeToken(method.getReturnType(), initialization);
+                    initializeToken(method.getReturnType(), initialization, instance);
                 }
             }
         }
@@ -316,7 +352,9 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         return loadedProviders.stream().filter(type -> resolveProvidedTypes(type).contains(token)).findFirst().orElse(null);
     }
 
-    private void initializeToken(Class<?> token, BootstrapInitialization initialization) {
+    private void initializeToken(Class<?> token, BootstrapInitialization initialization, Object requester) {
+        IDependencyMetaData<?, ?> published = DependencyMap.getDependencyMap().findMetaData(token);
+        if (published != null && published.getDependencyInstance() == requester) return;
         Class<?> provider = providedTypeOwner(token);
         if (provider != null) initializeProvider(provider, initialization);
         IDependencyMetaData<?, ?> metadata = DependencyMap.getDependencyMap().findMetaData(token);

@@ -99,6 +99,37 @@ class ProvidedDependencyIntegrationTest {
     }
 
     @Test
+    void failedProductLifecycleRestoresAliasesAndAllowsAFreshFactoryRetry() {
+        DependencyMap map = DependencyMap.getDependencyMap();
+        ExternalClient original = map.registerInstance(ExternalClient.class, new ThirdPartyClient("original"));
+        IDependencyMetaData<?, ?> originalMetadata = map.findMetaData(ExternalClient.class);
+        assertThrows(IllegalStateException.class, () -> map.registerFactory(ExternalClient.class,
+                new LifecycleFactory(true), LifecycleClient.class));
+        assertSame(original, map.getInstance(ExternalClient.class));
+        assertSame(originalMetadata, map.findMetaData(ExternalClient.class));
+        assertEquals(null, map.findMetaData(LifecycleClient.class));
+        assertEquals(null, map.findMetaData(LifecycleFactory.class));
+        ExternalClient recovered = map.registerFactory(ExternalClient.class, new LifecycleFactory(false), LifecycleClient.class);
+        assertEquals("ready", recovered.endpoint());
+        assertSame(recovered, map.getInstance(LifecycleClient.class));
+    }
+
+    static final class LifecycleFactory implements IDependencyFactory<LifecycleClient> {
+        private final boolean fail;
+        LifecycleFactory(boolean fail) { this.fail = fail; }
+        @Override public LifecycleClient create() { return new LifecycleClient(fail); }
+    }
+
+    static final class LifecycleClient implements ExternalClient {
+        private final boolean fail;
+        LifecycleClient(boolean fail) { this.fail = fail; }
+        @org.tavall.dependency.annotations.PostConstruct public void initialize() {
+            if (fail) throw new IllegalStateException("initialization failed");
+        }
+        @Override public String endpoint() { return "ready"; }
+    }
+
+    @Test
     void manualFactoryRegistrationRejectsAnAliasBeforePublishingMetadata() {
         IDependencyFactory<ThirdPartyClient> factory =
                 () -> new ThirdPartyClient("manual-endpoint");
