@@ -125,3 +125,11 @@ Implementation PR #20 integrated through staging #12; final main `86de4c75a6b09c
 Generation-owned access binds through the existing DependencyMap metadata lifecycle. Tests cover coherent aliases, suppliers, replacement/removal/clear, failed initialization and borrowed parent metadata. Filesystem/NLEW accepted main checks and Cloud's 902 package-backed tests consume this API; Cloud runtime cutover is independently pending. Source-only publication does not claim every Tavall consumer has adopted the optional new access style.
 
 Successor staging #21 preserves the existing independent feature children; this documentation-only promotion does not replace their branches or scope.
+
+## 2026-10-17 Provided dependency candidate
+
+[PR #10](https://github.com/TavallStudios/tavall-di/pull/10) now uses zero-argument factories, existing typed DependencyAccess and named getters for factory inputs and consumers, including generated expanded access and isolated-map generation ownership. The original fork branch and current platform integration parent #26 are preserved.
+
+Implementation `ae55b08fa96c5f8a2996bb7c3bf94c206070f0a5` passes Java 25 clean check/javadoc and JAR boundary validation: 88 tests, zero failures/errors/skips. Coverage includes initialized factory/product prerequisites, injected consumers, invalid declarations, alias identity and replacement, generation retirement, rollback/retry, direct/generated self-access, partial alias repair, retained generations during failed repair, and manual lambda replacement. The JDK HttpClient fixture makes no network request. [Immutable test results](evidence/2026-10-17-provided-dependencies/results.json) bind the implementation separately from the evidence commit.
+
+Fresh native CI request `1578d22a-3792-42b0-be16-acc4ff1e7b4e` stopped before source tasks because CONTROL artifact export rejected its identity path (`identityFile must be a direct file in the operation credential directory`). Current hosted source acceptance, integration fan-in, package release and deployment remain unaccepted. This is a feature-candidate checkpoint; earlier mainline audit/release entries remain historical. The Notion progression twin records this checkpoint and the same acceptance boundary.
