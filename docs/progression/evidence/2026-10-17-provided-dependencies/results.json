@@ -1,10 +1,10 @@
 {
   "repository": "TavallStudios/tavall-di",
-  "sourceCommit": "da3f74b81ffb8d042b04e4e239ced00b07577e74",
-  "sourceTree": "7978e67422a40e781949c6e31aa2ae1bc6c41ae8",
+  "sourceCommit": "5bf1ed053e491ccc0ebee5e1827b623c5654bcbb",
+  "sourceTree": "1fe7d56f4f1b90e3644094359247341c0faf92ab",
   "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
   "tests": {
-    "tests": 94,
+    "tests": 95,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -42,7 +42,8 @@
     "generation-owned factory products retain scoped injection,aliases and retirement",
     "missing provider binding repairs without replacing the live product or metadata",
     "construction strategy is restored after a later repair failure",
-    "conflicting ordinary/provided declarations reject before publication"
+    "conflicting ordinary/provided declarations reject before publication",
+    "provider repair preserves borrowed parent metadata construction and generation ownership"
   ],
   "referenceNativeInvocation": {
     "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
