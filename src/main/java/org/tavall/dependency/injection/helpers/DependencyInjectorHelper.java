@@ -329,7 +329,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
                     factory = instantiateProvider(providerType);
                     initializeDeclaredInputs(factory, initialization);
                     map.registerInstance((Class) providerType, factory);
-                    if (liveProduct instanceof DependencyMetaData metadata) {
+                    if (liveProduct instanceof DependencyMetaData metadata && metadata.getDependencyMap() == map) {
                         initialization.rememberSupplier(metadata);
                         IDependencyFactory<?> reboundFactory = factory;
                         metadata.setDependencySupplier(reboundFactory::create);

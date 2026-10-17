@@ -321,6 +321,42 @@ class ProvidedDependencyGeneratedAccessTest {
     }
 
     @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void providerRepairDoesNotRewriteBorrowedParentConstructionOrOwnership() throws Exception {
+        var sources = Map.of("provided.borrowed.Token", "package provided.borrowed; public interface Token {}",
+                "provided.borrowed.Component", """
+                package provided.borrowed;
+                public final class Component extends org.tavall.dependency.GenerationOwnedDependencyAccess implements Token {}
+                """, "provided.borrowed.Factory", """
+                package provided.borrowed;
+                @org.tavall.dependency.annotations.ProvidedDependency(Token.class)
+                public final class Factory implements org.tavall.dependency.IDependencyFactory<Token> {
+                    public Token create() { throw new IllegalStateException("parent product must be retained"); }
+                }
+                """);
+        var output = DependencyAccessTestCompiler.compileSources(sources);
+        var child = DependencyMap.getDependencyMap();
+        var parent = new DependencyMap();
+        child.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            Class token = loader.loadClass("provided.borrowed.Token");
+            var component = (org.tavall.dependency.GenerationOwnedDependencyAccess) loader.loadClass("provided.borrowed.Component").getConstructor().newInstance();
+            parent.registerInstance(token, component);
+            var metadata = (org.tavall.dependency.metadata.DependencyMetaData<?, ?>) parent.findMetaData(token);
+            var supplier = metadata.getDependencySupplier();
+            child.registerDependency(token, metadata);
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.borrowed");
+            helper.setupDISystem(loader);
+            assertSame(component, child.getInstance(token));
+            assertSame(supplier, metadata.getDependencySupplier());
+            child.clear();
+            assertSame(parent, component.getDependencyMap());
+            assertSame(component, parent.getInstance(token));
+        } finally { child.clear(); parent.clear(); }
+    }
+
+    @Test
     void scannerRejectsEveryNonConcreteProviderDeclaration() throws Exception {
         for (String declaration : new String[] {
                 "public abstract class Invalid implements org.tavall.dependency.IDependencyFactory<String> {}",
