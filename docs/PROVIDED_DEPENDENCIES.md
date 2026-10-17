@@ -1,112 +1,45 @@
 # Provided Dependencies
 
-## Purpose
+`@ProvidedDependency` binds an explicitly constructed foreign object to the same metadata and owning map as ordinary Tavall dependencies. Use `@DelegatesTo` when Tavall owns the implementation, and `registerInstance` in runtime/bootstrap infrastructure when another owner already constructed it.
 
-Provided dependencies let Tavall DI own the construction instructions for an object whose concrete class Tavall does not own or cannot instantiate through the normal no-argument `@DelegatesTo` path.
-
-The runtime authority does not change:
-
-```text
-dependency token
-    -> DependencyMap
-    -> IDependencyMetaData
-    -> metadata-owned instance
-```
-
-There is no third-party container, provider cache, or alternate lookup path.
-
-## Ownership Model
-
-Use the construction path that matches who owns the object:
-
-| Path | Use when |
-|---|---|
-| `@DelegatesTo` | Tavall owns the concrete class and Tavall DI may construct it directly. |
-| `@ProvidedDependency` | Tavall owns a small factory, while the produced class belongs to a third-party library or otherwise needs custom assembly. |
-| `registerInstance` | Another runtime already constructed the object and Tavall DI only needs to bind it. |
-
-## Factory Contract
-
-A provider implements `IDependencyFactory<T>`:
-
-```java
-public interface IDependencyFactory<T> {
-    T create(IDependencyMap dependencyMap);
-}
-```
-
-The owning map is passed into the factory. Providers should resolve required Tavall dependencies from that map instead of reading the global map directly.
-
-## Annotation Pattern
-
-`@ProvidedDependency` has one value: the dependency tokens exposed by the produced instance.
+A factory implements `IDependencyFactory<T>` with `T create()`. Factories and consumers obtain inputs through the existing typed `DependencyAccess` pattern and named getters. They do not accept or call `IDependencyMap` or `DependencyMap` directly.
 
 ```java
 @ProvidedDependency({DataSource.class, HikariDataSource.class})
 public final class HikariDataSourceFactory
-        implements IDependencyFactory<HikariDataSource> {
-
+        implements IDependencyFactory<HikariDataSource>,
+                   DependencyAccess<DatabaseConfiguration> {
     @Override
-    public HikariDataSource create(IDependencyMap dependencies) {
-        DatabaseConfiguration configuration =
-                dependencies.getInstance(DatabaseConfiguration.class);
+    public HikariDataSource create() {
+        DatabaseConfiguration configuration = getConfiguration();
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(configuration.jdbcUrl());
+        config.setUsername(configuration.username());
+        config.setPassword(configuration.password());
+        return new HikariDataSource(config);
+    }
 
-        HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(configuration.jdbcUrl());
-        hikariConfig.setUsername(configuration.username());
-        hikariConfig.setPassword(configuration.password());
-        return new HikariDataSource(hikariConfig);
+    private DatabaseConfiguration getConfiguration() {
+        return getInstance();
+    }
+}
+
+@DelegatesTo
+public final class QueryService implements DependencyAccess<DataSource> {
+    private DataSource getDataSource() {
+        return getInstance();
     }
 }
 ```
 
-The first annotation value is the primary token. Any remaining values are aliases. Every token resolves to the same metadata object and the same instance.
+For multiple inputs, use the existing expanded declaration, such as `DependencyAccess<DatabaseConfiguration, PoolSettings>`, and named getters returning `getInstance().databaseConfiguration()` and `getInstance().poolSettings()`. Source lowering generates the typed access class for a factory annotated with `@ProvidedDependency`, just as it does for `@DelegatesTo` consumers. The expanded declaration requires the existing lowering task before Java compilation.
 
-The provider class itself is construction metadata and is not registered as the produced dependency.
+The first annotation token is primary; remaining tokens are aliases. They share one metadata object and one instance. Consumers do not need a separate third-party lookup path.
 
-## Bootstrap Order
+Bootstrap publishes ordinary bindings before initializing them, then constructs factories after their declared typed or injected prerequisites are initialized. A consumer requiring a provided object during injection or lifecycle initialization receives it before its own initialization. Provider chains are initialized by declared inputs; construction cycles fail explicitly. An undeclared lookup inside arbitrary user code is not a bootstrap dependency declaration.
 
-Normal `@DelegatesTo` dependencies are registered and initialized first. Provided dependency factories run afterward. This lets a provider consume ordinary Tavall configuration and services during construction.
+Factories remain small construction owners. Runtime/bootstrap infrastructure may call `registerFactory(DataSource.class, new HikariDataSourceFactory(), HikariDataSource.class)` on the owning map. A factory used with an isolated map extends the existing `GenerationOwnedDependencyAccess` base; it and its consumers retain the same typed getters. The map binds that factory to its existing generation lifecycle, and clearing the map retires its access. There is no second container or provider cache.
 
-A provider should remain small and deterministic. It should assemble the foreign object, not become a second service layer.
+Registration rejects empty tokens, non-concrete factories, missing `IDependencyFactory`, simultaneous `@DelegatesTo`, duplicate provider tokens, null results and incompatible primary/alias types. Foreign constructors are never inferred. Factories own cleanup of partially constructed objects when their construction fails. Once registered, instances use the ordinary map lifecycle and alias replacement behavior.
 
-## Manual Registration
-
-Infrastructure code may register a factory without annotation scanning:
-
-```java
-DataSource dataSource = dependencyMap.registerFactory(
-        DataSource.class,
-        dependencies -> createDataSource(
-                dependencies.getInstance(DatabaseConfiguration.class)),
-        HikariDataSource.class
-);
-```
-
-The additional runtime tokens are aliases. Factory registration validates the produced instance against the primary token and every alias before any metadata is published.
-
-## Runtime Behavior
-
-Once registration completes, consumers use ordinary Tavall DI access:
-
-```java
-DataSource dataSource = getDependencyMap().getInstance(DataSource.class);
-```
-
-Consumers do not know whether the dependency came from reflection, a factory, or a preconstructed instance.
-
-Replacement also remains ordinary Tavall DI behavior. Replacing an instance through one provided token updates the metadata shared by all aliases.
-
-## Failure Rules
-
-Fail registration when:
-
-- `@ProvidedDependency` declares no usable tokens;
-- the annotated provider does not implement `IDependencyFactory`;
-- a provider also declares `@DelegatesTo`;
-- the factory returns `null`;
-- the produced instance does not satisfy the primary token;
-- the produced instance does not satisfy any declared alias;
-- the provider cannot be constructed through its no-argument constructor.
-
-Do not inspect third-party constructors automatically. The provider exists specifically to keep third-party construction explicit and stable across library upgrades.
+The integration suite compiles expanded factory and consumer declarations and constructs a JDK `HttpClient` through typed access without making network requests. It also covers initialized configuration prerequisites, injected consumers, alias identity and replacement, invalid declaration discovery, and isolated-map retirement.

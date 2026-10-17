@@ -47,6 +47,8 @@ class ProvidedDependencyIntegrationTest {
         assertSame(clientMetadata, concreteMetadata);
         assertEquals("fixture-endpoint", client.endpoint());
         assertEquals(1, ThirdPartyClientFactory.creationCount());
+        assertEquals("fixture-endpoint", DependencyMap.getDependencyMap()
+                .getInstance(org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.ClientConsumer.class).endpoint());
     }
 
     @Test
@@ -63,9 +65,43 @@ class ProvidedDependencyIntegrationTest {
     }
 
     @Test
+    void scopedFactoriesAndConsumersUseTheirOwnGenerationWithoutTheGlobalMap() {
+        DependencyMap first = new DependencyMap();
+        DependencyMap second = new DependencyMap();
+        first.registerInstance(org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class, () -> "first");
+        second.registerInstance(org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class, () -> "second");
+        ScopedFactory a = new ScopedFactory();
+        ScopedFactory b = new ScopedFactory();
+        try {
+            first.registerFactory(ExternalClient.class, a, ThirdPartyClient.class);
+            second.registerFactory(ExternalClient.class, b, ThirdPartyClient.class);
+            ScopedConsumer one = first.registerInstance(ScopedConsumer.class, new ScopedConsumer());
+            ScopedConsumer two = second.registerInstance(ScopedConsumer.class, new ScopedConsumer());
+            assertEquals("first", one.endpoint());
+            assertEquals("second", two.endpoint());
+            first.clear();
+            assertThrows(IllegalStateException.class, a::create);
+            assertThrows(IllegalStateException.class, one::endpoint);
+            assertEquals("second", two.endpoint());
+        } finally { first.clear(); second.clear(); }
+    }
+
+    static final class ScopedFactory extends org.tavall.dependency.GenerationOwnedDependencyAccess
+            implements IDependencyFactory<ThirdPartyClient>, org.tavall.dependency.DependencyAccess<org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration> {
+        @Override public ThirdPartyClient create() { return new ThirdPartyClient(getConfiguration().endpoint()); }
+        private org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration getConfiguration() { return getInstance(); }
+    }
+
+    static final class ScopedConsumer extends org.tavall.dependency.GenerationOwnedDependencyAccess
+            implements org.tavall.dependency.DependencyAccess<ExternalClient> {
+        String endpoint() { return getClient().endpoint(); }
+        private ExternalClient getClient() { return getInstance(); }
+    }
+
+    @Test
     void manualFactoryRegistrationRejectsAnAliasBeforePublishingMetadata() {
         IDependencyFactory<ThirdPartyClient> factory =
-                dependencyMap -> new ThirdPartyClient("manual-endpoint");
+                () -> new ThirdPartyClient("manual-endpoint");
 
         assertThrows(
                 IllegalArgumentException.class,

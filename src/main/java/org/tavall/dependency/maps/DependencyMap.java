@@ -84,7 +84,7 @@ public class DependencyMap
     }
 
     @Override
-    public <T> T registerFactory(
+    public synchronized <T> T registerFactory(
             Class<T> dependencyType,
             IDependencyFactory<? extends T> dependencyFactory,
             Class<?>... aliases) {
@@ -95,8 +95,15 @@ public class DependencyMap
             throw new IllegalArgumentException("[DependencyMap] dependency factory is required");
         }
 
-        T instance = dependencyFactory.create(this);
-        validateRegistration(dependencyType, instance);
+        boolean registeredFactory = bindFactoryAccess(dependencyFactory);
+        T instance;
+        try {
+            instance = dependencyFactory.create();
+            validateRegistration(dependencyType, instance);
+        } catch (RuntimeException | Error failure) {
+            if (registeredFactory) removeDependency(dependencyFactory.getClass());
+            throw failure;
+        }
 
         Set<Class<?>> dependencyTypes = new LinkedHashSet<>();
         dependencyTypes.add(dependencyType);
@@ -106,6 +113,7 @@ public class DependencyMap
                     continue;
                 }
                 if (!alias.isInstance(instance)) {
+                    if (registeredFactory) removeDependency(dependencyFactory.getClass());
                     throw new IllegalArgumentException("[DependencyMap] dependency instance must satisfy alias "
                             + alias.getName());
                 }
@@ -114,6 +122,23 @@ public class DependencyMap
         }
 
         return registerFactoryInstance(dependencyType, instance, dependencyFactory, dependencyTypes);
+    }
+
+    /** Binds scoped factory inputs through the same existing generation lifecycle as consumers. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean bindFactoryAccess(IDependencyFactory<?> factory) {
+        if (factory instanceof org.tavall.dependency.IDependencyAccess access
+                && !(factory instanceof org.tavall.dependency.GenerationOwnedDependencyAccess)
+                && access.getDependencyMap() != this) {
+            throw new IllegalArgumentException("Typed factory must use the owning map; scoped factories extend GenerationOwnedDependencyAccess");
+        }
+        IDependencyMetaData<?, ?> existing = findMetaData(factory.getClass());
+        if (existing != null) {
+            if (existing.getDependencyInstance() == factory) return false;
+            throw new IllegalStateException("Factory class is already registered; unload it before replacement: " + factory.getClass().getName());
+        }
+        registerInstance((Class) factory.getClass(), factory);
+        return true;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -130,7 +155,7 @@ public class DependencyMap
                 new DependencyInterface(dependencyType),
                 new DependencyInstance(concreteType),
                 instance,
-                () -> dependencyFactory.create(this));
+                dependencyFactory::create);
 
         for (Class<?> exposedType : dependencyTypes) {
             registerDependency(exposedType, metaData);

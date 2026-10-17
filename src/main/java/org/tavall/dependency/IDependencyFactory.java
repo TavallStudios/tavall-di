@@ -9,10 +9,8 @@
 
 package org.tavall.dependency;
 
-import org.tavall.dependency.maps.interfaces.IDependencyMap;
-
 /**
- * Creates a dependency instance using the map that will own the resulting binding.
+ * Creates a foreign dependency using ordinary typed dependency access where inputs are required.
  *
  * @param <T> the produced dependency type
  */
@@ -22,8 +20,7 @@ public interface IDependencyFactory<T> {
     /**
      * Creates one dependency instance.
      *
-     * @param dependencyMap the dependency map available to the factory
      * @return the created dependency instance
      */
-    T create(IDependencyMap dependencyMap);
+    T create();
 }

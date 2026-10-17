@@ -115,9 +115,9 @@ public final class DependencyAccessSourceLowerer {
             }
             foundDependencyAccess = true;
 
-            if (!hasDelegatesToAnnotation(normalizedSource, classKeywordIndex)) {
+            if (!hasManagedDeclaration(normalizedSource, classKeywordIndex)) {
                 throw new IllegalArgumentException(
-                        "DependencyAccess requires @DelegatesTo on " + className);
+                        "DependencyAccess requires @DelegatesTo or @ProvidedDependency on " + className);
             }
 
             ParsedAccess parsedAccess = parseDependencyAccess(segment, classTypeParameters);
@@ -145,14 +145,24 @@ public final class DependencyAccessSourceLowerer {
         return new LoweredSource(rewrittenSource, List.copyOf(generatedSources));
     }
 
-    private boolean hasDelegatesToAnnotation(String source, int classKeywordIndex) {
+    private boolean hasManagedDeclaration(String source, int classKeywordIndex) {
         String declarationPrefix = source.substring(0, classKeywordIndex);
-        int previousTypeEnd = Math.max(
-                declarationPrefix.lastIndexOf('}'),
-                declarationPrefix.lastIndexOf(';'));
+        int previousTypeEnd = -1;
+        int parentheses = 0;
+        for (int index = declarationPrefix.length() - 1; index >= 0; index--) {
+            char character = declarationPrefix.charAt(index);
+            if (character == ')') parentheses++;
+            else if (character == '(') parentheses--;
+            else if (parentheses == 0 && (character == '}' || character == ';')) {
+                previousTypeEnd = index;
+                break;
+            }
+        }
         String localPrefix = declarationPrefix.substring(Math.max(0, previousTypeEnd + 1));
         return localPrefix.contains("@DelegatesTo")
-                || localPrefix.contains("@org.tavall.dependency.annotations.DelegatesTo");
+                || localPrefix.contains("@org.tavall.dependency.annotations.DelegatesTo")
+                || localPrefix.contains("@ProvidedDependency")
+                || localPrefix.contains("@org.tavall.dependency.annotations.ProvidedDependency");
     }
 
     private boolean isDependencyAccessSegment(String segment) {

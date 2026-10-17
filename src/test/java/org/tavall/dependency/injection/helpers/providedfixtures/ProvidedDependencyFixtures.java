@@ -3,7 +3,9 @@ package org.tavall.dependency.injection.helpers.providedfixtures;
 import org.tavall.dependency.IDependencyFactory;
 import org.tavall.dependency.annotations.DelegatesTo;
 import org.tavall.dependency.annotations.ProvidedDependency;
-import org.tavall.dependency.maps.interfaces.IDependencyMap;
+import org.tavall.dependency.annotations.Inject;
+import org.tavall.dependency.annotations.PostConstruct;
+import org.tavall.dependency.DependencyAccess;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,10 +19,20 @@ public final class ProvidedDependencyFixtures {
 
     @DelegatesTo(TestConfiguration.class)
     public static final class DefaultTestConfiguration implements TestConfiguration {
-        @Override
-        public String endpoint() {
+        private boolean initialized;
+        @PostConstruct public void initialize() { initialized = true; }
+        @Override public String endpoint() {
+            if (!initialized) throw new IllegalStateException("Configuration must initialize before factory construction");
             return "fixture-endpoint";
         }
+    }
+
+    public interface ClientConsumer { String endpoint(); }
+
+    @DelegatesTo(ClientConsumer.class)
+    public static final class InjectedClientConsumer implements ClientConsumer {
+        @Inject private ExternalClient client;
+        @Override public String endpoint() { return client.endpoint(); }
     }
 
     public interface ExternalClient {
@@ -41,14 +53,18 @@ public final class ProvidedDependencyFixtures {
     }
 
     @ProvidedDependency({ExternalClient.class, ThirdPartyClient.class})
-    public static final class ThirdPartyClientFactory implements IDependencyFactory<ThirdPartyClient> {
+    public static final class ThirdPartyClientFactory implements IDependencyFactory<ThirdPartyClient>, DependencyAccess<TestConfiguration> {
         private static final AtomicInteger CREATIONS = new AtomicInteger();
 
         @Override
-        public ThirdPartyClient create(IDependencyMap dependencyMap) {
+        public ThirdPartyClient create() {
             CREATIONS.incrementAndGet();
-            TestConfiguration configuration = dependencyMap.getInstance(TestConfiguration.class);
+            TestConfiguration configuration = getTestConfiguration();
             return new ThirdPartyClient(configuration.endpoint());
+        }
+
+        private TestConfiguration getTestConfiguration() {
+            return getInstance();
         }
 
         public static int creationCount() {
