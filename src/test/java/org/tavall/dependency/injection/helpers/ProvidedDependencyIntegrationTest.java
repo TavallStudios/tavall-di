@@ -52,6 +52,27 @@ class ProvidedDependencyIntegrationTest {
     }
 
     @Test
+    void setupRepairsMissingAliasesWithoutReconstructingFactoriesProductsOrOrdinaryInputs() {
+        var helper = new DependencyInjectorHelper<Object, Object>();
+        helper.setBasePackage(FIXTURE_PACKAGE);
+        helper.setupDISystem();
+        var map = DependencyMap.getDependencyMap();
+        ExternalClient original = map.getInstance(ExternalClient.class);
+        var originalMetadata = map.findMetaData(ExternalClient.class);
+        var configurationType = org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class;
+        Object configuration = map.getInstance(configurationType);
+        map.removeDependency(ExternalClient.class);
+        helper.setupDISystem();
+        assertSame(original, map.getInstance(ExternalClient.class));
+        assertSame(originalMetadata, map.findMetaData(ExternalClient.class));
+        map.removeDependency(configurationType);
+        helper.setupDISystem();
+        assertSame(configuration, map.getInstance(configurationType));
+        assertSame(original, map.getInstance(ExternalClient.class));
+        assertEquals(1, ThirdPartyClientFactory.creationCount());
+    }
+
+    @Test
     void replacementThroughOneProvidedTokenRemainsVisibleThroughAliases() {
         DependencyInjectorHelper<Object, Object> helper = new DependencyInjectorHelper<>();
         helper.setBasePackage(FIXTURE_PACKAGE);

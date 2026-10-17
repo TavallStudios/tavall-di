@@ -127,7 +127,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         synchronized (map) {
             java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>(map);
             try {
-                BootstrapInitialization initialization = new BootstrapInitialization(publishAnnotatedDependencies());
+                BootstrapInitialization initialization = new BootstrapInitialization(publishAnnotatedDependencies(true));
                 for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
                 for (IDependencyMetaData<?, ?> metadata : initialization.pending) initializeManaged(metadata, initialization);
                 flushPendingCacheRegistryMetaData(loader);
@@ -150,8 +150,10 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         for (Class<?> token : bindings) {
             IDependencyMetaData<?, ?> current = map.findMetaData(token);
             if (current != null && current != previous.get(token)) {
-                try { map.removeDependency(token); }
-                catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+                try {
+                    if (previous.containsValue(current)) map.remove(token, current);
+                    else map.removeDependency(token);
+                } catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
             }
         }
         for (Class<?> token : bindings) {
@@ -209,12 +211,12 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
      */
     @SuppressWarnings({"rawtypes", "unchecked", "deprecation"})
     public void registerDependenciesViaAnnotation() {
-        Set<IDependencyMetaData<?, ?>> metadata = publishAnnotatedDependencies();
+        Set<IDependencyMetaData<?, ?>> metadata = publishAnnotatedDependencies(false);
         metadata.forEach(IDependencyMetaData::initializeDependencyInstance);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "deprecation"})
-    private Set<IDependencyMetaData<?, ?>> publishAnnotatedDependencies() {
+    private Set<IDependencyMetaData<?, ?>> publishAnnotatedDependencies(boolean reusePublished) {
         Log.warn("[DI-Helper] ====== Beginning annotation-driven DI registration ======");
 
         int registeredBindings = 0;
@@ -230,12 +232,12 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             Class<?> primaryType = delegatedTypes.iterator().next();
             IDependencyInterface wrappedType = new DependencyInterface(primaryType);
             IDependencyInstance wrappedConcrete = new DependencyInstance(concreteType);
-            IDependencyMetaData dependencyMetaData = new DependencyMetaData();
-            dependencyMetaDataHelper.populateMetaData(
-                    dependencyMetaData,
-                    wrappedType,
-                    wrappedConcrete);
-            registeredMetaData.add(dependencyMetaData);
+            IDependencyMetaData dependencyMetaData = reusePublished ? existingManagedMetadata(concreteType, delegatedTypes) : null;
+            if (dependencyMetaData == null) {
+                dependencyMetaData = new DependencyMetaData();
+                dependencyMetaDataHelper.populateMetaData(dependencyMetaData, wrappedType, wrappedConcrete);
+                registeredMetaData.add(dependencyMetaData);
+            }
 
             for (Class<?> delegatedType : delegatedTypes) {
                 RegisteredBinding binding = new RegisteredBinding(delegatedType, concreteType);
@@ -250,6 +252,22 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         Log.warn("[DI-Helper] Finished annotation DI registration, registered dependency bindings: "
                 + registeredBindings);
         return registeredMetaData;
+    }
+
+    private IDependencyMetaData<?, ?> existingManagedMetadata(Class<?> concreteType, Set<Class<?>> tokens) {
+        Set<IDependencyMetaData<?, ?>> candidates = new LinkedHashSet<>();
+        for (Class<?> token : tokens) {
+            IDependencyMetaData<?, ?> metadata = DependencyMap.getDependencyMap().findMetaData(token);
+            if (metadata != null && metadata.getConcreteType() == concreteType) candidates.add(metadata);
+        }
+        if (candidates.isEmpty()) return null;
+        if (candidates.size() != 1) throw new IllegalStateException("Conflicting metadata for " + concreteType.getName());
+        IDependencyMetaData<?, ?> existing = candidates.iterator().next();
+        for (Class<?> token : tokens) {
+            IDependencyMetaData<?, ?> mapped = DependencyMap.getDependencyMap().findMetaData(token);
+            if (mapped != null && mapped != existing) throw new IllegalStateException("Conflicting dependency token " + token.getName());
+        }
+        return existing;
     }
 
     /**
@@ -295,9 +313,15 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             throw new IllegalStateException("Cyclic provided dependency construction: " + providerType.getName());
         }
         try {
-            IDependencyFactory<?> factory = instantiateProvider(providerType);
-            initializeDeclaredInputs(factory, initialization);
+            DependencyMap map = DependencyMap.getDependencyMap();
+            IDependencyFactory<?> factory = (IDependencyFactory<?>) map.findInstance(providerType);
             Set<Class<?>> tokens = resolveProvidedTypes(providerType);
+            if (factory != null && restoreProvidedAliases(tokens)) {
+                initialization.completedProviders.add(providerType);
+                return;
+            }
+            if (factory == null) factory = instantiateProvider(providerType);
+            initializeDeclaredInputs(factory, initialization);
             Class<?> primaryType = tokens.iterator().next();
             Class<?>[] aliases = tokens.stream().skip(1).toArray(Class<?>[]::new);
             DependencyMap.getDependencyMap().registerFactory((Class) primaryType, factory,
@@ -306,6 +330,24 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         } finally {
             initialization.activeProviders.remove(providerType);
         }
+    }
+
+    /** Repairs missing aliases through their existing metadata, without constructing another product. */
+    private boolean restoreProvidedAliases(Set<Class<?>> tokens) {
+        DependencyMap map = DependencyMap.getDependencyMap();
+        Set<IDependencyMetaData<?, ?>> candidates = new LinkedHashSet<>();
+        for (Class<?> token : tokens) {
+            IDependencyMetaData<?, ?> metadata = map.findMetaData(token);
+            if (metadata != null) candidates.add(metadata);
+        }
+        if (candidates.isEmpty()) return false;
+        if (candidates.size() != 1) throw new IllegalStateException("Conflicting metadata for provided aliases");
+        IDependencyMetaData<?, ?> metadata = candidates.iterator().next();
+        for (Class<?> token : tokens) {
+            if (!token.isInstance(metadata.getDependencyInstance())) throw new IllegalStateException("Invalid provided alias " + token.getName());
+        }
+        tokens.forEach(token -> map.registerDependency(token, metadata));
+        return true;
     }
 
     private void initializeManaged(IDependencyMetaData<?, ?> metadata, BootstrapInitialization initialization) {
@@ -337,15 +379,23 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             }
             current = current.getSuperclass();
         }
-        if (instance.getClass().getSimpleName().endsWith("DependencyAccess")
-                && instance instanceof org.tavall.dependency.IDependencyAccess) {
-            for (Method method : instance.getClass().getDeclaredMethods()) {
+    }
+
+    private boolean isGeneratedAccess(Object instance) {
+        return instance.getClass().getSimpleName().endsWith("DependencyAccess")
+                && instance instanceof org.tavall.dependency.IDependencyAccess;
+    }
+
+    private void initializeGeneratedInputs(Object access, BootstrapInitialization initialization, Object owner) {
+        if (!initialization.activeAccess.add(access)) throw new IllegalStateException("Cyclic generated dependency access");
+        try {
+            for (Method method : access.getClass().getDeclaredMethods()) {
                 if (!Modifier.isStatic(method.getModifiers()) && method.getParameterCount() == 0
                         && method.getReturnType() != void.class && method.getReturnType() != IDependencyMap.class) {
-                    initializeToken(method.getReturnType(), initialization, instance);
+                    initializeToken(method.getReturnType(), initialization, owner);
                 }
             }
-        }
+        } finally { initialization.activeAccess.remove(access); }
     }
 
     private Class<?> providedTypeOwner(Class<?> token) {
@@ -360,6 +410,9 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         IDependencyMetaData<?, ?> metadata = DependencyMap.getDependencyMap().findMetaData(token);
         if (metadata == null) throw new IllegalStateException("No dependency registered for declared input " + token.getName());
         initializeManaged(metadata, initialization);
+        if (isGeneratedAccess(metadata.getDependencyInstance())) {
+            initializeGeneratedInputs(metadata.getDependencyInstance(), initialization, requester);
+        }
     }
 
     /** Thread-confined state for one metadata publication/initialization pass; never a second container. */
@@ -369,6 +422,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         private final Set<IDependencyMetaData<?, ?>> activeMetadata = new LinkedHashSet<>();
         private final Set<Class<?>> completedProviders = new LinkedHashSet<>();
         private final Set<Class<?>> activeProviders = new LinkedHashSet<>();
+        private final Set<Object> activeAccess = new LinkedHashSet<>();
 
         private BootstrapInitialization(Set<IDependencyMetaData<?, ?>> pending) {
             this.pending = pending;

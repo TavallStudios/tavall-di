@@ -122,6 +122,38 @@ class ProvidedDependencyGeneratedAccessTest {
     }
 
     @Test
+    void expandedSelfAccessPreservesTheOwnerAcrossTheGeneratedHop() throws Exception {
+        var sources = Map.of("provided.expandedself.Component", """
+                package provided.expandedself;
+                @org.tavall.dependency.annotations.DelegatesTo
+                public final class Component implements org.tavall.dependency.DependencyAccess<Component, Configuration> {
+                    public boolean initialized;
+                    @org.tavall.dependency.annotations.PostConstruct public void initialize() {
+                        if (getInstance().component() != this || !getInstance().configuration().ready) throw new IllegalStateException("invalid expanded inputs");
+                        initialized = true;
+                    }
+                }
+                """, "provided.expandedself.Configuration", """
+                package provided.expandedself;
+                @org.tavall.dependency.annotations.DelegatesTo
+                public final class Configuration {
+                    public boolean ready;
+                    @org.tavall.dependency.annotations.PostConstruct public void initialize() { ready = true; }
+                }
+                """);
+        var output = DependencyAccessTestCompiler.compileSources(new DependencyAccessSourceLowerer().lowerSources(sources));
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.expandedself");
+            helper.setupDISystem(loader);
+            Object component = map.getInstance(loader.loadClass("provided.expandedself.Component"));
+            assertTrue(component.getClass().getField("initialized").getBoolean(component));
+        } finally { map.clear(); }
+    }
+
+    @Test
     void producedObjectInputsAreInitializedBeforeItsLifecycle() throws Exception {
         Map<String, String> sources = new LinkedHashMap<>();
         sources.put("provided.product.Configuration", """
@@ -211,6 +243,40 @@ class ProvidedDependencyGeneratedAccessTest {
             assertEquals("ready", map.getInstance(String.class));
             assertEquals(7, map.getInstance(Integer.class));
             assertEquals(2, loader.loadClass("provided.retry.ReadyFactory").getField("creations").getInt(null));
+        } finally { map.clear(); }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void failedAliasRepairDoesNotRetireThePreviouslyOwnedGeneration() throws Exception {
+        var output = DependencyAccessTestCompiler.compileSources(Map.of(
+                "provided.retained.Alias", "package provided.retained; public interface Alias {}",
+                "provided.retained.Component", """
+                package provided.retained;
+                @org.tavall.dependency.annotations.DelegatesTo(Alias.class)
+                public final class Component extends org.tavall.dependency.GenerationOwnedDependencyAccess implements Alias {}
+                """,
+                "provided.retained.FailingFactory", """
+                package provided.retained;
+                @org.tavall.dependency.annotations.ProvidedDependency(String.class)
+                public final class FailingFactory implements org.tavall.dependency.IDependencyFactory<String> {
+                    public String create() { throw new IllegalStateException("transient failure"); }
+                }
+                """));
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            Class componentType = loader.loadClass("provided.retained.Component");
+            var component = (org.tavall.dependency.GenerationOwnedDependencyAccess) componentType.getConstructor().newInstance();
+            map.registerInstance(componentType, component);
+            Class<?> alias = loader.loadClass("provided.retained.Alias");
+            map.remove(alias); // Simulate a lost alias while the original generation remains mapped.
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.retained");
+            assertThrows(IllegalStateException.class, () -> helper.setupDISystem(loader));
+            assertSame(component, map.getInstance(componentType));
+            assertSame(map, component.getDependencyMap());
+            assertNull(map.findMetaData(alias));
         } finally { map.clear(); }
     }
 
