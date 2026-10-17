@@ -126,13 +126,15 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         DependencyMap map = DependencyMap.getDependencyMap();
         synchronized (map) {
             java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>(map);
+            BootstrapInitialization initialization = new BootstrapInitialization(new LinkedHashSet<>());
             try {
-                BootstrapInitialization initialization = new BootstrapInitialization(publishAnnotatedDependencies(true));
+                initialization.pending.addAll(publishAnnotatedDependencies(true));
                 for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
                 for (IDependencyMetaData<?, ?> metadata : initialization.pending) initializeManaged(metadata, initialization);
                 flushPendingCacheRegistryMetaData(loader);
                 REGISTERED_BINDINGS.put(bootstrapKey, registeredBindingKeys());
             } catch (RuntimeException | Error failure) {
+                initialization.restoreSuppliers(failure);
                 rollbackBootstrap(previous, failure);
                 throw failure;
             }
@@ -279,10 +281,11 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         DependencyMap map = DependencyMap.getDependencyMap();
         synchronized (map) {
             java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>(map);
+            BootstrapInitialization initialization = new BootstrapInitialization(Set.of());
             try {
-                BootstrapInitialization initialization = new BootstrapInitialization(Set.of());
                 for (Class<?> providerType : loadedProviders) initializeProvider(providerType, initialization);
             } catch (RuntimeException | Error failure) {
+                initialization.restoreSuppliers(failure);
                 rollbackBootstrap(previous, failure);
                 throw failure;
             }
@@ -291,6 +294,8 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
 
     private void validateProvidedDeclarations() {
         Set<Class<?>> producedTokens = new LinkedHashSet<>();
+        Set<Class<?>> ordinaryTokens = new LinkedHashSet<>();
+        loadedConcretes.forEach(type -> ordinaryTokens.addAll(validDelegatedTypes(type)));
         for (Class<?> providerType : loadedProviders) {
             if (hasDelegationAnnotation(providerType)) {
                 throw new IllegalStateException("Dependency provider cannot also declare @DelegatesTo: " + providerType.getName());
@@ -301,6 +306,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             Set<Class<?>> tokens = resolveProvidedTypes(providerType);
             if (tokens.isEmpty()) throw new IllegalArgumentException("@ProvidedDependency requires at least one dependency token: " + providerType.getName());
             for (Class<?> token : tokens) {
+                if (ordinaryTokens.contains(token)) throw new IllegalArgumentException("Ordinary and provided declarations both own " + token.getName());
                 if (!producedTokens.add(token)) throw new IllegalArgumentException("Multiple provided factories declare " + token.getName());
             }
         }
@@ -316,8 +322,19 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             DependencyMap map = DependencyMap.getDependencyMap();
             IDependencyFactory<?> factory = (IDependencyFactory<?>) map.findInstance(providerType);
             Set<Class<?>> tokens = resolveProvidedTypes(providerType);
-            if (factory != null && restoreProvidedAliases(tokens)) {
+            IDependencyMetaData<?, ?> liveProduct = restoreProvidedAliases(tokens);
+            if (liveProduct != null) {
                 initialization.completedProviders.add(providerType);
+                if (factory == null) {
+                    factory = instantiateProvider(providerType);
+                    initializeDeclaredInputs(factory, initialization);
+                    map.registerInstance((Class) providerType, factory);
+                    if (liveProduct instanceof DependencyMetaData metadata) {
+                        initialization.rememberSupplier(metadata);
+                        IDependencyFactory<?> reboundFactory = factory;
+                        metadata.setDependencySupplier(reboundFactory::create);
+                    }
+                }
                 return;
             }
             if (factory == null) factory = instantiateProvider(providerType);
@@ -333,21 +350,21 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
     }
 
     /** Repairs missing aliases through their existing metadata, without constructing another product. */
-    private boolean restoreProvidedAliases(Set<Class<?>> tokens) {
+    private IDependencyMetaData<?, ?> restoreProvidedAliases(Set<Class<?>> tokens) {
         DependencyMap map = DependencyMap.getDependencyMap();
         Set<IDependencyMetaData<?, ?>> candidates = new LinkedHashSet<>();
         for (Class<?> token : tokens) {
             IDependencyMetaData<?, ?> metadata = map.findMetaData(token);
             if (metadata != null) candidates.add(metadata);
         }
-        if (candidates.isEmpty()) return false;
+        if (candidates.isEmpty()) return null;
         if (candidates.size() != 1) throw new IllegalStateException("Conflicting metadata for provided aliases");
         IDependencyMetaData<?, ?> metadata = candidates.iterator().next();
         for (Class<?> token : tokens) {
             if (!token.isInstance(metadata.getDependencyInstance())) throw new IllegalStateException("Invalid provided alias " + token.getName());
         }
         tokens.forEach(token -> map.registerDependency(token, metadata));
-        return true;
+        return metadata;
     }
 
     private void initializeManaged(IDependencyMetaData<?, ?> metadata, BootstrapInitialization initialization) {
@@ -423,6 +440,19 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
         private final Set<Class<?>> completedProviders = new LinkedHashSet<>();
         private final Set<Class<?>> activeProviders = new LinkedHashSet<>();
         private final Set<Object> activeAccess = new LinkedHashSet<>();
+        private final java.util.Map<DependencyMetaData<?, ?>, java.util.function.Supplier<?>> previousSuppliers = new java.util.LinkedHashMap<>();
+
+        private void rememberSupplier(DependencyMetaData<?, ?> metadata) {
+            if (!previousSuppliers.containsKey(metadata)) previousSuppliers.put(metadata, metadata.getDependencySupplier());
+        }
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private void restoreSuppliers(Throwable failure) {
+            previousSuppliers.forEach((metadata, supplier) -> {
+                try { ((DependencyMetaData) metadata).setDependencySupplier(supplier); }
+                catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+            });
+        }
 
         private BootstrapInitialization(Set<IDependencyMetaData<?, ?>> pending) {
             this.pending = pending;

@@ -184,8 +184,9 @@ class ProvidedDependencyIntegrationTest {
         assertSame(factory, map.getInstance(InjectedFactory.class));
         DependencyMap scoped = new DependencyMap();
         try {
-            assertThrows(IllegalArgumentException.class, () -> scoped.registerFactory(ExternalClient.class, new InjectedFactory()));
-            assertEquals(0, scoped.getDependencyMapSize(), "scoped field injection cannot silently use the global map");
+            scoped.registerInstance(org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class, () -> "scoped");
+            assertEquals("scoped", scoped.registerFactory(ExternalClient.class, new InjectedFactory()).endpoint());
+            assertEquals("manual", map.getInstance(ExternalClient.class).endpoint());
         } finally { scoped.clear(); }
     }
 
@@ -213,6 +214,63 @@ class ProvidedDependencyIntegrationTest {
         return new IDependencyFactory<>() {
             @Override public ThirdPartyClient create() { return new ThirdPartyClient(endpoint); }
         };
+    }
+
+    @Test
+    void plainFactoryProductsInjectFromTheirOwnMapEvenWhenTheGlobalTokenExists() {
+        var configuration = org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class;
+        DependencyMap.getDependencyMap().registerInstance(configuration, () -> "global");
+        DependencyMap scoped = new DependencyMap();
+        try {
+            scoped.registerInstance(configuration, () -> "local");
+            ExternalClient product = scoped.registerFactory(ExternalClient.class, InjectedProduct::new, InjectedProduct.class);
+            assertEquals("local", product.endpoint());
+            assertSame(scoped.findMetaData(ExternalClient.class), scoped.findMetaData(InjectedProduct.class));
+        } finally { scoped.clear(); }
+    }
+
+    @Test
+    void factoryProductsRetainExistingGenerationOwnershipAndScopedInjection() {
+        var configuration = org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class;
+        DependencyMap.getDependencyMap().registerInstance(configuration, () -> "global");
+        DependencyMap scoped = new DependencyMap();
+        try {
+            scoped.registerInstance(configuration, () -> "local");
+            ExternalClient product = scoped.registerFactory(ExternalClient.class, OwnedInjectedProduct::new, OwnedInjectedProduct.class);
+            assertEquals("local:local", product.endpoint());
+            assertSame(product, scoped.getInstance(OwnedInjectedProduct.class));
+            scoped.clear();
+            assertThrows(IllegalStateException.class, product::endpoint);
+        } finally { scoped.clear(); }
+    }
+
+    @Test
+    void repairingOnlyTheProviderBindingPreservesTheLiveProductAndMetadata() {
+        var helper = new DependencyInjectorHelper<Object, Object>();
+        helper.setBasePackage(FIXTURE_PACKAGE);
+        helper.setupDISystem();
+        var map = DependencyMap.getDependencyMap();
+        ExternalClient product = map.getInstance(ExternalClient.class);
+        var metadata = map.findMetaData(ExternalClient.class);
+        map.removeDependency(ThirdPartyClientFactory.class);
+        helper.setupDISystem();
+        assertSame(product, map.getInstance(ExternalClient.class));
+        assertSame(metadata, map.findMetaData(ExternalClient.class));
+        assertEquals(1, ThirdPartyClientFactory.creationCount());
+        org.junit.jupiter.api.Assertions.assertNotNull(map.findInstance(ThirdPartyClientFactory.class));
+    }
+
+    static final class InjectedProduct implements ExternalClient {
+        @org.tavall.dependency.annotations.Inject
+        private org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration configuration;
+        @Override public String endpoint() { return configuration.endpoint(); }
+    }
+
+    static final class OwnedInjectedProduct extends org.tavall.dependency.GenerationOwnedDependencyAccess
+            implements ExternalClient, org.tavall.dependency.DependencyAccess<org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration> {
+        @org.tavall.dependency.annotations.Inject
+        private org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration configuration;
+        @Override public String endpoint() { return getInstance().endpoint() + ":" + configuration.endpoint(); }
     }
 
     private static IDependencyFactory<ThirdPartyClient> endpointFactory(String endpoint) {

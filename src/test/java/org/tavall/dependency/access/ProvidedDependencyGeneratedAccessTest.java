@@ -243,6 +243,20 @@ class ProvidedDependencyGeneratedAccessTest {
             assertEquals("ready", map.getInstance(String.class));
             assertEquals(7, map.getInstance(Integer.class));
             assertEquals(2, loader.loadClass("provided.retry.ReadyFactory").getField("creations").getInt(null));
+            var retainedProduct = map.getInstance(String.class);
+            var metadata = (org.tavall.dependency.metadata.DependencyMetaData<?, ?>) map.findMetaData(String.class);
+            var retainedSupplier = metadata.getDependencySupplier();
+            map.removeDependency(loader.loadClass("provided.retry.ReadyFactory"));
+            map.removeDependency(Integer.class);
+            loader.loadClass("provided.retry.TransientFactory").getField("fail").setBoolean(null, true);
+            assertThrows(IllegalStateException.class, () -> helper.setupDISystem(loader));
+            assertSame(retainedProduct, map.getInstance(String.class));
+            assertSame(retainedSupplier, metadata.getDependencySupplier());
+            assertNull(map.findMetaData(loader.loadClass("provided.retry.ReadyFactory")));
+            loader.loadClass("provided.retry.TransientFactory").getField("fail").setBoolean(null, false);
+            helper.setupDISystem(loader);
+            assertSame(retainedProduct, map.getInstance(String.class));
+            assertEquals(2, loader.loadClass("provided.retry.ReadyFactory").getField("creations").getInt(null));
         } finally { map.clear(); }
     }
 
@@ -277,6 +291,32 @@ class ProvidedDependencyGeneratedAccessTest {
             assertSame(component, map.getInstance(componentType));
             assertSame(map, component.getDependencyMap());
             assertNull(map.findMetaData(alias));
+        } finally { map.clear(); }
+    }
+
+    @Test
+    void ordinaryAndProvidedDeclarationsCannotSilentlyCompeteForTheSameToken() throws Exception {
+        var sources = Map.of("provided.conflict.Token", "package provided.conflict; public interface Token {}",
+                "provided.conflict.Ordinary", """
+                package provided.conflict;
+                @org.tavall.dependency.annotations.DelegatesTo(Token.class)
+                public final class Ordinary implements Token {}
+                """, "provided.conflict.Factory", """
+                package provided.conflict;
+                @org.tavall.dependency.annotations.ProvidedDependency(Token.class)
+                public final class Factory implements org.tavall.dependency.IDependencyFactory<Token> {
+                    public Token create() { return new Ordinary(); }
+                }
+                """);
+        var output = DependencyAccessTestCompiler.compileSources(sources);
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.conflict");
+            var failure = assertThrows(IllegalArgumentException.class, () -> helper.setupDISystem(loader));
+            assertTrue(failure.getMessage().contains("both own"));
+            assertEquals(0, map.getDependencyMapSize());
         } finally { map.clear(); }
     }
 
