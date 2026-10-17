@@ -1,10 +1,10 @@
 {
   "repository": "TavallStudios/tavall-di",
-  "sourceCommit": "bc8fe276b3e71533d1f13b4fd7f14e76a76d9d81",
-  "sourceTree": "4206756efc1e2e245e4ef7c5b94ced01b3cf0f3e",
+  "sourceCommit": "ae55b08fa96c5f8a2996bb7c3bf94c206070f0a5",
+  "sourceTree": "7613fb5b1ebf329c96318dc0d39ea97d82d6fc61",
   "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
   "tests": {
-    "tests": 87,
+    "tests": 88,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -14,8 +14,8 @@
   "acceptanceScope": "Local source and package checks; first-party package dependency provenance is not hosted exact-source acceptance",
   "nativeCi": {
     "currentHead": "UNRUN_CURRENT_HEAD: known CONTROL artifact-export credential boundary remains blocked",
-    "previousHead": "994a724f7f28fc7175b586b68937dd05fca93be6",
-    "requestId": "bc5ca5b0-fb64-4da5-8157-3c2be5a9f764",
+    "previousHead": "abf6397244f62bad9d2e952f7dd693fc1301b672",
+    "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
     "outcome": "FAILED_INFRASTRUCTURE: identityFile must be a direct file in the operation credential directory; source tasks not reached"
   },
   "deployment": "NOT_RUN",
@@ -34,6 +34,7 @@
     "bootstrap failure rolls back completed providers and retries without clearing unrelated bindings",
     "expanded self access retains original owner across generated access objects",
     "partial setup repairs aliases and ordinary tokens without recreating live providers/products",
-    "failed alias repair preserves the previously owned generation"
+    "failed alias repair preserves the previously owned generation",
+    "manual lambda factories remain replaceable at the same call site without synthetic lifecycle bindings"
   ]
 }
