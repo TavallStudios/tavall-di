@@ -1,10 +1,10 @@
 {
   "repository": "TavallStudios/tavall-di",
-  "sourceCommit": "0c82fa4197fbd0baf003daa1e745a1d7b9c7f1cc",
-  "sourceTree": "dbc53b15a8b0f011bfc3a32e3f2302bd60a77143",
+  "sourceCommit": "bc8fe276b3e71533d1f13b4fd7f14e76a76d9d81",
+  "sourceTree": "4206756efc1e2e245e4ef7c5b94ced01b3cf0f3e",
   "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
   "tests": {
-    "tests": 84,
+    "tests": 87,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -31,6 +31,9 @@
     "ordinary and produced self-access is not a construction cycle",
     "produced-object injected inputs initialize before lifecycle",
     "failed product restores prior alias metadata and allows a fresh factory",
-    "bootstrap failure rolls back completed providers and retries without clearing unrelated bindings"
+    "bootstrap failure rolls back completed providers and retries without clearing unrelated bindings",
+    "expanded self access retains original owner across generated access objects",
+    "partial setup repairs aliases and ordinary tokens without recreating live providers/products",
+    "failed alias repair preserves the previously owned generation"
   ]
 }
