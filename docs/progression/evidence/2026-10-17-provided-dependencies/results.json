@@ -1,10 +1,10 @@
 {
   "repository": "TavallStudios/tavall-di",
-  "sourceCommit": "d010bfd5587481ed9d9de5e88d32dbb0205e7ded",
-  "sourceTree": "3b0e4a63570977bb36a7df514f798aa3d52ec825",
+  "sourceCommit": "da3f74b81ffb8d042b04e4e239ced00b07577e74",
+  "sourceTree": "7978e67422a40e781949c6e31aa2ae1bc6c41ae8",
   "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
   "tests": {
-    "tests": 90,
+    "tests": 94,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -37,7 +37,12 @@
     "failed alias repair preserves the previously owned generation",
     "manual lambda factories remain replaceable at the same call site without synthetic lifecycle bindings",
     "pure named,anonymous and lambda factories do not create accidental class singletons",
-    "manual factory injection/lifecycle remains managed, and scoped injection cannot silently fall back to the global map"
+    "manual factory injection/lifecycle remains managed, and scoped injection cannot silently fall back to the global map",
+    "metadata field injection resolves from its owning map for factories and products",
+    "generation-owned factory products retain scoped injection,aliases and retirement",
+    "missing provider binding repairs without replacing the live product or metadata",
+    "construction strategy is restored after a later repair failure",
+    "conflicting ordinary/provided declarations reject before publication"
   ],
   "referenceNativeInvocation": {
     "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
