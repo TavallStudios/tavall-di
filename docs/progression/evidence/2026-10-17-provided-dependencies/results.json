@@ -1,10 +1,10 @@
 {
   "repository": "TavallStudios/tavall-di",
-  "sourceCommit": "6f4017301abac8aac1c393e2f03d505961161853",
-  "sourceTree": "d7cea13aba58e90e893c9bf67c69f23a188093aa",
+  "sourceCommit": "0c82fa4197fbd0baf003daa1e745a1d7b9c7f1cc",
+  "sourceTree": "dbc53b15a8b0f011bfc3a32e3f2302bd60a77143",
   "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
   "tests": {
-    "tests": 80,
+    "tests": 84,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -12,7 +12,12 @@
   "jarBoundaryCheck": "PASS",
   "javadoc": "PASS with 100 missing-comment warnings",
   "acceptanceScope": "Local source and package checks; first-party package dependency provenance is not hosted exact-source acceptance",
-  "nativeCi": "PENDING; CONTROL lane list returns INVALID_REQUEST updatedAt must not precede createdAt",
+  "nativeCi": {
+    "currentHead": "UNRUN_CURRENT_HEAD: known CONTROL artifact-export credential boundary remains blocked",
+    "previousHead": "994a724f7f28fc7175b586b68937dd05fca93be6",
+    "requestId": "bc5ca5b0-fb64-4da5-8157-3c2be5a9f764",
+    "outcome": "FAILED_INFRASTRUCTURE: identityFile must be a direct file in the operation credential directory; source tasks not reached"
+  },
   "deployment": "NOT_RUN",
   "regressions": [
     "typed factory create() and named consumer getters",
@@ -22,6 +27,10 @@
     "chains initialize by declared inputs; cycles reject",
     "all four non-concrete provider declarations rejected",
     "aliases share and replace metadata",
-    "scoped maps isolated; retired factory/consumer access fails"
+    "scoped maps isolated; retired factory/consumer access fails",
+    "ordinary and produced self-access is not a construction cycle",
+    "produced-object injected inputs initialize before lifecycle",
+    "failed product restores prior alias metadata and allows a fresh factory",
+    "bootstrap failure rolls back completed providers and retries without clearing unrelated bindings"
   ]
 }
