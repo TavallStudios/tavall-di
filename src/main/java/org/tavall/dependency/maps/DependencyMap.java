@@ -131,8 +131,8 @@ public class DependencyMap
                 && access.getDependencyMap() != this) {
             throw new IllegalArgumentException("Typed factory must use the owning map; scoped factories extend GenerationOwnedDependencyAccess");
         }
-        // Lambda construction instructions have no injectable lifecycle surface. The product metadata owns their supplier.
-        if (factory.getClass().isSynthetic()) return false;
+        // Pure construction instructions stay in product metadata; only actual DI/lifecycle ownership needs a factory binding.
+        if (!requiresFactoryLifecycle(factory)) return false;
         IDependencyMetaData<?, ?> existing = findMetaData(factory.getClass());
         if (existing != null) {
             if (existing.getDependencyInstance() == factory) return false;
@@ -140,6 +140,30 @@ public class DependencyMap
         }
         registerInstance((Class) factory.getClass(), factory);
         return true;
+    }
+
+    private boolean requiresFactoryLifecycle(IDependencyFactory<?> factory) {
+        Class<?> type = factory.getClass();
+        boolean injected = hasInjectedFactoryFields(type);
+        if (injected && this != DEPENDENCY_MAP && !(factory instanceof org.tavall.dependency.IDependencyAccess)) {
+            throw new IllegalArgumentException("Injected scoped factories must expose their owning map through GenerationOwnedDependencyAccess");
+        }
+        if (injected || factory instanceof org.tavall.dependency.GenerationOwnedDependencyAccess
+                || type.isAnnotationPresent(org.tavall.dependency.annotations.ProvidedDependency.class)) return true;
+        for (org.tavall.dependency.injection.enums.LifecycleType lifecycle : org.tavall.dependency.injection.enums.LifecycleType.values()) {
+            if (!lifecycle.findAllIn(type).isEmpty()) return true;
+        }
+        return false;
+    }
+
+    private boolean hasInjectedFactoryFields(Class<?> type) {
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (java.lang.reflect.Field field : current.getDeclaredFields()) {
+                if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())
+                        && field.isAnnotationPresent(org.tavall.dependency.annotations.Inject.class)) return true;
+            }
+        }
+        return false;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

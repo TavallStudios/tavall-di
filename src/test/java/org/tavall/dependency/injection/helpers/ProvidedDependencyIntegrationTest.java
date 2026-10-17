@@ -163,6 +163,58 @@ class ProvidedDependencyIntegrationTest {
         assertEquals(null, map.findMetaData(first.getClass()));
     }
 
+    @Test
+    void pureNamedAndAnonymousFactoriesRemainConstructionInstructions() {
+        var map = DependencyMap.getDependencyMap();
+        map.registerFactory(ExternalClient.class, new PureFactory("one"), ThirdPartyClient.class);
+        map.registerFactory(ExternalClient.class, new PureFactory("two"), ThirdPartyClient.class);
+        assertEquals("two", map.getInstance(ExternalClient.class).endpoint());
+        map.registerFactory(ExternalClient.class, anonymousFactory("three"), ThirdPartyClient.class);
+        map.registerFactory(ExternalClient.class, anonymousFactory("four"), ThirdPartyClient.class);
+        assertEquals("four", map.getInstance(ExternalClient.class).endpoint());
+        assertEquals(null, map.findMetaData(PureFactory.class));
+    }
+
+    @Test
+    void manualFactoryInjectionAndLifecycleAreStillOwnedByTheMap() {
+        var map = DependencyMap.getDependencyMap();
+        map.registerInstance(org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration.class, () -> "manual");
+        var factory = new InjectedFactory();
+        assertEquals("manual", map.registerFactory(ExternalClient.class, factory).endpoint());
+        assertSame(factory, map.getInstance(InjectedFactory.class));
+        DependencyMap scoped = new DependencyMap();
+        try {
+            assertThrows(IllegalArgumentException.class, () -> scoped.registerFactory(ExternalClient.class, new InjectedFactory()));
+            assertEquals(0, scoped.getDependencyMapSize(), "scoped field injection cannot silently use the global map");
+        } finally { scoped.clear(); }
+    }
+
+    static final class PureFactory implements IDependencyFactory<ThirdPartyClient> {
+        private final String endpoint;
+        PureFactory(String endpoint) { this.endpoint = endpoint; }
+        @Override public ThirdPartyClient create() { return new ThirdPartyClient(endpoint); }
+    }
+
+    static final class InjectedFactory implements IDependencyFactory<ThirdPartyClient> {
+        @org.tavall.dependency.annotations.Inject
+        private org.tavall.dependency.injection.helpers.providedfixtures.ProvidedDependencyFixtures.TestConfiguration configuration;
+        private boolean initialized;
+        @org.tavall.dependency.annotations.PostConstruct public void initialize() {
+            if (configuration == null) throw new IllegalStateException("missing configuration");
+            initialized = true;
+        }
+        @Override public ThirdPartyClient create() {
+            if (!initialized) throw new IllegalStateException("factory not initialized");
+            return new ThirdPartyClient(configuration.endpoint());
+        }
+    }
+
+    private static IDependencyFactory<ThirdPartyClient> anonymousFactory(String endpoint) {
+        return new IDependencyFactory<>() {
+            @Override public ThirdPartyClient create() { return new ThirdPartyClient(endpoint); }
+        };
+    }
+
     private static IDependencyFactory<ThirdPartyClient> endpointFactory(String endpoint) {
         return () -> new ThirdPartyClient(endpoint);
     }
