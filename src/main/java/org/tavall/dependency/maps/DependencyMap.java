@@ -86,11 +86,11 @@ public class DependencyMap
     @Override
     public synchronized <T> T registerFactory(Class<T> dependencyType,
             IDependencyFactory<? extends T> dependencyFactory, Class<?>... aliases) {
-        return registerFactory(dependencyType, dependencyFactory, instance -> { }, aliases);
+        return registerFactoryWithInitialization(dependencyType, dependencyFactory, instance -> { }, aliases);
     }
 
     /** Bootstrap infrastructure resolves produced-object prerequisites before its lifecycle runs. */
-    public synchronized <T> T registerFactory(Class<T> dependencyType,
+    public synchronized <T> T registerFactoryWithInitialization(Class<T> dependencyType,
             IDependencyFactory<? extends T> dependencyFactory,
             java.util.function.Consumer<? super T> beforeInitialization, Class<?>... aliases) {
         if (dependencyType == null || dependencyFactory == null || beforeInitialization == null) {
@@ -131,6 +131,8 @@ public class DependencyMap
                 && access.getDependencyMap() != this) {
             throw new IllegalArgumentException("Typed factory must use the owning map; scoped factories extend GenerationOwnedDependencyAccess");
         }
+        // Lambda construction instructions have no injectable lifecycle surface. The product metadata owns their supplier.
+        if (factory.getClass().isSynthetic()) return false;
         IDependencyMetaData<?, ?> existing = findMetaData(factory.getClass());
         if (existing != null) {
             if (existing.getDependencyInstance() == factory) return false;

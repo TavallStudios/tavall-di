@@ -324,7 +324,7 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             initializeDeclaredInputs(factory, initialization);
             Class<?> primaryType = tokens.iterator().next();
             Class<?>[] aliases = tokens.stream().skip(1).toArray(Class<?>[]::new);
-            DependencyMap.getDependencyMap().registerFactory((Class) primaryType, factory,
+            DependencyMap.getDependencyMap().registerFactoryWithInitialization((Class) primaryType, factory,
                     instance -> initializeDeclaredInputs(instance, initialization), aliases);
             initialization.completedProviders.add(providerType);
         } finally {

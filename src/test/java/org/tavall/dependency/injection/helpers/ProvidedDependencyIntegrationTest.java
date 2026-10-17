@@ -151,6 +151,23 @@ class ProvidedDependencyIntegrationTest {
     }
 
     @Test
+    void manualLambdaFactoriesCanBeReplacedAtTheSameCallSite() {
+        var map = DependencyMap.getDependencyMap();
+        IDependencyFactory<ThirdPartyClient> first = endpointFactory("first");
+        IDependencyFactory<ThirdPartyClient> second = endpointFactory("second");
+        assertSame(first.getClass(), second.getClass());
+        map.registerFactory(ExternalClient.class, first, ThirdPartyClient.class);
+        ExternalClient replacement = map.registerFactory(ExternalClient.class, second, ThirdPartyClient.class);
+        assertEquals("second", replacement.endpoint());
+        assertSame(replacement, map.getInstance(ThirdPartyClient.class));
+        assertEquals(null, map.findMetaData(first.getClass()));
+    }
+
+    private static IDependencyFactory<ThirdPartyClient> endpointFactory(String endpoint) {
+        return () -> new ThirdPartyClient(endpoint);
+    }
+
+    @Test
     void manualFactoryRegistrationRejectsAnAliasBeforePublishingMetadata() {
         IDependencyFactory<ThirdPartyClient> factory =
                 () -> new ThirdPartyClient("manual-endpoint");
