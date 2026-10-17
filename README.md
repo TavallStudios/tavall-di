@@ -161,3 +161,7 @@ No tracked license file is present in the current repository tree.
 ## Generation ownership
 
 See [Generation-owned dependency access](docs/GENERATION_OWNED_DEPENDENCY_ACCESS.md) for managed registration, aliases, parent references and stale-reference rejection. Root CI is [`.tavallci/ci.yaml`](.tavallci/ci.yaml). This module is a `SYSTEM` with a secondary `LIBRARY` role, composed by its consuming runtime; it owns no independent process.
+
+## Provided dependencies
+
+Third-party factories implement `IDependencyFactory<T>.create()` and use the existing typed `DependencyAccess` and named getters for inputs. Consumers use the same pattern. See [Provided dependencies](docs/PROVIDED_DEPENDENCIES.md) for the factory/consumer example, generated access, bootstrap ordering and scoped lifecycle contract.
