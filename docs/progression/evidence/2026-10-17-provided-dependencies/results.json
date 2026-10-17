@@ -1,0 +1,27 @@
+{
+  "repository": "TavallStudios/tavall-di",
+  "sourceCommit": "6f4017301abac8aac1c393e2f03d505961161853",
+  "sourceTree": "d7cea13aba58e90e893c9bf67c69f23a188093aa",
+  "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
+  "tests": {
+    "tests": 80,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "jarBoundaryCheck": "PASS",
+  "javadoc": "PASS with 100 missing-comment warnings",
+  "acceptanceScope": "Local source and package checks; first-party package dependency provenance is not hosted exact-source acceptance",
+  "nativeCi": "PENDING; CONTROL lane list returns INVALID_REQUEST updatedAt must not precede createdAt",
+  "deployment": "NOT_RUN",
+  "regressions": [
+    "typed factory create() and named consumer getters",
+    "compiled expanded factory/consumer, JDK HttpClient without network",
+    "factory prerequisites initialized before construction",
+    "provided instances available before consumer field injection",
+    "chains initialize by declared inputs; cycles reject",
+    "all four non-concrete provider declarations rejected",
+    "aliases share and replace metadata",
+    "scoped maps isolated; retired factory/consumer access fails"
+  ]
+}
