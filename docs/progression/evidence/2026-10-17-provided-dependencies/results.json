@@ -1,10 +1,10 @@
 {
   "repository": "TavallStudios/tavall-di",
-  "sourceCommit": "ae55b08fa96c5f8a2996bb7c3bf94c206070f0a5",
-  "sourceTree": "7613fb5b1ebf329c96318dc0d39ea97d82d6fc61",
+  "sourceCommit": "d010bfd5587481ed9d9de5e88d32dbb0205e7ded",
+  "sourceTree": "3b0e4a63570977bb36a7df514f798aa3d52ec825",
   "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
   "tests": {
-    "tests": 88,
+    "tests": 90,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -16,7 +16,7 @@
     "currentHead": "UNRUN_CURRENT_HEAD: known CONTROL artifact-export credential boundary remains blocked",
     "previousHead": "abf6397244f62bad9d2e952f7dd693fc1301b672",
     "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
-    "outcome": "FAILED_INFRASTRUCTURE: identityFile must be a direct file in the operation credential directory; source tasks not reached"
+    "outcome": "PUBLICATION_FAILED: identityFile must be a direct file in the operation credential directory; the earlier Executor invocation completed with exit0 but detailed check results and approved artifact/evidence publication are unavailable"
   },
   "deployment": "NOT_RUN",
   "regressions": [
@@ -35,6 +35,18 @@
     "expanded self access retains original owner across generated access objects",
     "partial setup repairs aliases and ordinary tokens without recreating live providers/products",
     "failed alias repair preserves the previously owned generation",
-    "manual lambda factories remain replaceable at the same call site without synthetic lifecycle bindings"
-  ]
+    "manual lambda factories remain replaceable at the same call site without synthetic lifecycle bindings",
+    "pure named,anonymous and lambda factories do not create accidental class singletons",
+    "manual factory injection/lifecycle remains managed, and scoped injection cannot silently fall back to the global map"
+  ],
+  "referenceNativeInvocation": {
+    "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
+    "sourceHead": "abf6397244f62bad9d2e952f7dd693fc1301b672",
+    "operationId": "shared-b37849b3e60796f28778b6d9d449f263",
+    "invocationState": "COMPLETED",
+    "exitCode": 0,
+    "resultingStateVerified": "true",
+    "repository": "TavallStudios/tavall-di"
+  },
+  "nativeAcceptanceBoundary": "An earlier DI invocation completed with exit0; CONTROL artifact publication failed. Current source acceptance and check-by-check evidence are not established by that process result."
 }
