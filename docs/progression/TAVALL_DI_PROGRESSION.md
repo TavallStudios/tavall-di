@@ -11,7 +11,7 @@
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
 > **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-10-17 7:58 PM PDT`
+> **Last Reconciled:** `2026-10-17 8:03 PM PDT`
 
 ## About
 
@@ -103,8 +103,8 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-09-27 5:30 PM PDT | Documentation branch `working/canonical-readme-2026-09-27`, PR [#17](https://github.com/TavallStudios/tavall-di/pull/17); audited main baseline `d8ecc02302522e3acecc586c3f9e918007c82ca3`. |
-| Notion | `TEMPORARY_DRIFT` | Required twin not inspected | 2026-09-27 5:30 PM PDT | User-directed GitHub-only scope; synchronization remains pending. |
+| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 8:03 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; current local and hosted boundaries in [the 2026-10-18 results report](evidence/2026-10-18-provided-dependencies/results.json). |
+| Notion | `TEMPORARY_DRIFT` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 8:03 PM PDT | Final 1:1 Notion update and post-fetch verification are pending this report commit. |
 
 ### Update History
 
@@ -144,6 +144,8 @@ Review follow-up: metadata now carries its owning map for scoped factory/product
 
 PR #10 adds explicit generated-origin metadata to lowered dependency access views. Bootstrap uses the existing `@CompositionBoundary` annotation and the lowerer's exact class identity instead of class-name suffix matching. A regression verifies that an authored `BusinessDependencyAccess.endpoint(): String` remains a business access object and is not expanded as a generated dependency view.
 
-Implementation source `525fef5d9f03ba81fd5218368a1d8328776b3827` passes Java 25 clean check, Javadoc, JAR packaging and boundary validation: 96 tests, zero failures/errors/skips. Javadoc reports 100 existing missing-comment warnings. The local JUnit result is recorded separately from hosted exact-source and staging acceptance.
+Implementation source `525fef5d9f03ba81fd5218368a1d8328776b3827` passes Java 25 clean check, Javadoc, JAR packaging and boundary validation: 96 tests, zero failures/errors/skips. Javadoc reports 100 existing missing-comment warnings. [The results report](evidence/2026-10-18-provided-dependencies/results.json) binds the JUnit aggregate and local JAR identity to that code source.
 
-At this checkpoint PR #10 remains open against `staging/platform` under Draft staging root #26. No composed staging acceptance, main promotion, package release, or deployment is claimed. Hosted exact-source acceptance, immutable report publication, and current-head advisory review remain pending.
+The typed hosted CI request `38dd54fc-f37d-4ea2-953a-c9c6982f34af` for PR head `f5352f882625a974c9d33a7848fd3fd183fe02d4` was rejected before source execution with `UNAUTHORIZED: environment repository execution requires CONTROL environment context`. No hosted checks ran; GitHub returned no status contexts or PR workflow runs for that head. This infrastructure boundary is separate from the local test result.
+
+At this checkpoint PR #10 remains open against `staging/platform` under Draft staging root #26. Composed staging validation, main promotion, package release, and deployment remain unaccepted or unrun.
