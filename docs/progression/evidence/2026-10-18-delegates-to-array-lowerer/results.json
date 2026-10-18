@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "repository": "TavallStudios/tavall-di",
   "pullRequest": 19,
-  "testedSource": "1bee6d6222f19d81258274250eac8d9729c8e541",
+  "testedSource": "e2d97a59d0fef95bc320b9e9f5b26276e44dd14d",
   "sourceGraph": {
     "testedSources": [
       {
         "repository": "TavallStudios/tavall-di",
-        "sha": "1bee6d6222f19d81258274250eac8d9729c8e541",
-        "role": "Corrected code and regression tests. Integration ancestry is PR #19 source 96b4, current staging parent e689, integration merge 0a3 and prior evidence commit 36c8."
+        "sha": "e2d97a59d0fef95bc320b9e9f5b26276e44dd14d",
+        "role": "Exact tested source with array-form @DelegatesTo lowering, annotation/comment masking, and declaration-token scanner correction. The code integration remains on staging parent e689; review-driven fix is e2d97a5."
       },
       {
         "repository": "TavallStudios/tavall-logging",
@@ -41,7 +41,7 @@
       "java": "25.0.1",
       "gradle": "9.6.1"
     },
-    "command": "./gradlew --include-build <tavall-logging@e047172> --include-build <tavall-custom-enum-java@2284168> clean check javadoc jar --no-daemon --console=plain --info",
+    "command": "JAVA_HOME=/opt/jdk-25.0.1 ./gradlew --no-daemon clean check javadoc jar; settings resolve pinned composite sources from staging .tavallci/ci.yaml.",
     "results": {
       "compilation": "PASS",
       "unitTests": {
@@ -50,7 +50,8 @@
         "errors": 0,
         "skipped": 0,
         "xmlFiles": 21,
-        "xmlAggregateSha256": "2da66aa2fc8448927246c47b4cc2242559600c08739caf566bb8ffe035d6e125"
+        "xmlAggregateSha256": "e73f897c3dff625260e2fda7a4c53cab63b3e249ccb9ee6bced296b367dcdf48",
+        "xmlAggregateMethod": "SHA-256 over sorted XML filename, NUL, file bytes, NUL."
       },
       "focusedClass": {
         "name": "org.tavall.dependency.access.DependencyAccessSourceLowererTest",
@@ -58,7 +59,7 @@
         "failures": 0,
         "errors": 0,
         "skipped": 0,
-        "newCodexRegression": "ignoresTypeDeclarationTextInCommentsAndAnnotationStrings"
+        "newRegression": "ignoresTypeDeclarationTextInCommentsAndAnnotationStrings; also verifies class tokens in both literals and comments do not shadow the declaration."
       },
       "verifyJarContents": "PASS",
       "check": "PASS",
@@ -71,8 +72,8 @@
     },
     "jarArtifact": {
       "path": "build/libs/tavall-di-1.2.1.jar",
-      "sizeBytes": 133780,
-      "sha256": "c878968c177dc02b268d2d3653a386a441eaeb6bf6e59426b69f30d13f02cbfa",
+      "sizeBytes": 133796,
+      "sha256": "7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9",
       "publication": "not published; local build output only"
     },
     "githubPackageCredentials": "GITHUB_TOKEN and GITHUB_ACTOR were unset; both private dependency coordinates resolved from the pinned source composites.",
@@ -82,20 +83,24 @@
       "summary": "Type-like text inside annotation strings/comments was matched as a type declaration.",
       "fixCommit": "1bee6d6222f19d81258274250eac8d9729c8e541",
       "regression": "PASS",
-      "remoteThreadResolution": "PENDING_SOURCE_PUSH",
-      "freshCodexReview": "PENDING"
+      "remoteThreadResolution": "RESOLVED",
+      "tavallRoleReviewFinding": "CLASS_PATTERN matched class-like text in comments or annotation strings before the real class declaration.",
+      "tavallRoleReviewFixCommit": "e2d97a59d0fef95bc320b9e9f5b26276e44dd14d",
+      "tavallRoleRegression": "PASS",
+      "tavallRoleReviewStatus": "COMPLETED_AFTER_FIX",
+      "tavallGithubBotReview": "UNAVAILABLE: canonical PR Review Agent has no configured tools/MCP; dedicated Bot runtime is not deployed and no review provider is wired.",
+      "codexReviewStatus": "NOT_USED_AS_ACCEPTANCE_GATE; an earlier automated review completed on superseded head 0611916 before the user preference was recorded."
     }
   },
   "pullRequestAtReport": {
     "state": "OPEN",
     "draft": true,
-    "head": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
+    "head": "e2d97a59d0fef95bc320b9e9f5b26276e44dd14d",
     "base": "e68919729689affef8407bde07904722a2408bb3",
     "mergeable": true,
     "githubActionsRuns": 0,
     "combinedStatusContexts": [],
-    "gitGuardian": "SUCCESS",
-    "gitGuardianCompletedAt": "2026-10-18T05:07:54Z"
+    "gitGuardian": "NO_STATUS_ON_CURRENT_HEAD"
   },
   "separateAcceptanceBoundaries": {
     "hostedExactSourceCI": "NOT_RUN",
@@ -104,19 +109,21 @@
     "runtimeAcceptance": "NOT_RUN",
     "deployment": "NOT_PERFORMED",
     "mainPromotion": "NOT_PERFORMED",
-    "freshCodexReview": "PENDING_ON_CORRECTED_REMOTE_HEAD"
+    "tavallGithubBotReview": "UNAVAILABLE; local installed PR Review Agent ROLE used and its findings were fixed.",
+    "codexReview": "NOT_USED_AS_ACCEPTANCE_GATE"
   },
   "reviewEvidence": {
     "kind": "report",
     "media": "NOT_APPLICABLE",
-    "reason": "Backend source-lowering and regression tests; the report records Codex P2 fix 1bee6d6. The old remote thread is pending reply/resolution and a fresh current-head Codex review."
+    "reason": "Backend source-lowering change. The report captures the resolved prior P2 finding, the Tavall PR Review ROLE scanner finding and fix e2d97a5, exact-source build results, and separate unavailable/unrun gates. No GitHub Bot review was published because its reviewer provider is not deployed or configured."
   },
   "integrationLineage": {
     "originalPr19Source": "96b4afce1a94160db43e489a56f010bb64c9efde",
     "stagingParent": "e68919729689affef8407bde07904722a2408bb3",
     "integrationMerge": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
     "previousEvidenceCommit": "36c8a30a42faef4d1235bd55a90ffffe496c7bf0",
-    "correctedTestedSource": "1bee6d6222f19d81258274250eac8d9729c8e541"
+    "correctedTestedSource": "e2d97a59d0fef95bc320b9e9f5b26276e44dd14d",
+    "tavallRoleReviewFix": "e2d97a59d0fef95bc320b9e9f5b26276e44dd14d"
   },
   "remotePrStateBeforeCorrectionPush": {
     "state": "OPEN",

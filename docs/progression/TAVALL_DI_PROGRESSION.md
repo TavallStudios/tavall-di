@@ -11,7 +11,7 @@
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
 > **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-10-17 10:23 PM PDT`
+> **Last Reconciled:** `2026-10-17 10:36 PM PDT`
 
 ## About
 
@@ -103,8 +103,8 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 10:23 PM PDT | PR #10 merged into staging at `e68919729689affef8407bde07904722a2408bb3`; corrected PR #19 source `1bee6d6222f19d81258274250eac8d9729c8e541`; [DI PR #19 results](evidence/2026-10-18-delegates-to-array-lowerer/results.json). |
-| Notion | `SYNCED` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:23 PM PDT | Post-fetch verified the P2 correction, 98-test exact-source report, open review thread and separate hosted/package/runtime boundaries. |
+| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 10:36 PM PDT | PR #10 merged into staging at `e68919729689affef8407bde07904722a2408bb3`; PR #19 tested source `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d`; [DI PR #19 results](evidence/2026-10-18-delegates-to-array-lowerer/results.json). |
+| Notion | `SYNCED` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:36 PM PDT | Post-fetch verified the Tavall PR Review role fix, 98-test exact-source report and separate unavailable/unrun gates. |
 
 ### Update History
 
@@ -114,6 +114,7 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 | 2026-10-17 8:05 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-09-27 5:30 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; report artifact commit `cbc65ecfd04a8459b2dcc8a4c53cd6f574bec6fd`; 96 local tests; hosted request `38dd54fc-f37d-4ea2-953a-c9c6982f34af` rejected before source execution; post-fetch verified | Corrected classification/runtime ownership and PR stack, added immutable local-results report, and recorded separate hosted and staging acceptance boundaries. |
 | 2026-10-17 10:08 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 8:05 PM PDT | PR #10 staging merge `e68919729689affef8407bde07904722a2408bb3`; DI PR #19 tested source `0a3b05993c4b4aef7a133ce4ef5f385c45927879`; [results report](evidence/2026-10-18-delegates-to-array-lowerer/results.json); post-fetch verified | Recorded the current staging lineage, array-form `@DelegatesTo` regression and local exact-source results while keeping hosted, package, runtime and deployment acceptance separate. |
 | 2026-10-17 10:23 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:08 PM PDT | Codex P2 comment `4305835422`; tested code source `1bee6d6222f19d81258274250eac8d9729c8e541`; 98 local tests; [corrected results report](evidence/2026-10-18-delegates-to-array-lowerer/results.json); post-fetch verified | Masked annotation strings/comments for type-boundary detection, added focused regression coverage, and kept the pending remote review/hosted boundaries explicit. |
+| 2026-10-17 10:36 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:23 PM PDT | Tavall PR Review Agent ROLE finding/fix `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d`; 98 exact-source tests; [current results report](evidence/2026-10-18-delegates-to-array-lowerer/results.json); post-fetch verified | Masked comment/string class tokens before declaration matching; recorded that the dedicated GitHub Bot review provider is unavailable and kept hosted/staging gates separate. |
 
 </details>
 
@@ -170,3 +171,11 @@ Codex review on PR head `36c8a30a42faef4d1235bd55a90ffffe496c7bf0` found that ty
 Corrected source `1bee6d6222f19d81258274250eac8d9729c8e541` passes focused lowerer tests (9 cases) and Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar`: 98 tests, zero failures/errors/skips, `verifyJarContents` passed. Javadoc has 100 missing-comment warnings. The local-only JAR SHA-256 is `c878968c177dc02b268d2d3653a386a441eaeb6bf6e59426b69f30d13f02cbfa`; it was not published. [The corrected exact-source report](evidence/2026-10-18-delegates-to-array-lowerer/results.json) records the P2 fix and source graph.
 
 At this checkpoint the tested P2 fix is local but not yet pushed; the remote PR head remains `36c8a30a42faef4d1235bd55a90ffffe496c7bf0`, where the finding is still open. A fresh Codex review and Owner Self-Review are required after publishing the corrected source. Hosted exact-source CI, composed staging validation, package release, runtime acceptance, deployment and main promotion remain unaccepted or unrun.
+
+## 2026-10-18 — Tavall PR Review role scanner correction
+
+The installed `tavall-agent-pr-review` ROLE review found that the lowerer's `CLASS_PATTERN` could match `class Adapter` inside an annotation string or comment before the actual class declaration. Commit `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d` masks comments and literals once, then uses the position-preserving masked source for both declaration matching and managed-annotation boundary checks. The regression keeps the prior `interface` cases and adds `class` text to the annotation string and comment.
+
+The exact source passes Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar`: 98 tests, zero failures/errors/skips, all 9 lowerer tests, and `verifyJarContents`; Javadoc has 100 missing-comment warnings. The local-only JAR SHA-256 is `7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9`. [The refreshed exact-source report](evidence/2026-10-18-delegates-to-array-lowerer/results.json) records the pinned Logging and Custom Enum composites, test receipt, and distinct source/package/runtime boundaries.
+
+The original P2 thread is replied to and resolved. The installed PR Review Agent manifest has no configured MCPs or tools, the dedicated Tavall GitHub Bot deployment record says `NOT DEPLOYED`, and the legacy host Bot service is inactive; no bot-hosted advisory review was available. The ROLE review was used in context, and no further `@codex review` was triggered. PR #19 is open as Draft at source head `e2d97a5`, targeting current `staging/platform` parent `e68919729689affef8407bde07904722a2408bb3`. GitHub returned no status contexts or Actions runs for the new head. Hosted exact-source CI, composed staging validation, package release, runtime acceptance, deployment and main promotion remain unaccepted or unrun.
