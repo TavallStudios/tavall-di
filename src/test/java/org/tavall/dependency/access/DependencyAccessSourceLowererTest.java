@@ -46,6 +46,45 @@ class DependencyAccessSourceLowererTest {
     }
 
     @Test
+    void recognizesArrayDelegatesToBeforeExpandedDependencyAccess() {
+        Map<String, String> sources = sourcesFor("IRepository", "IRegistry");
+        String handler = sources.get("org.example.Handler").replace(
+                "@DelegatesTo\n",
+                "@DelegatesTo({IRepository.class, IRegistry.class})\n");
+        sources.put("org.example.Handler", handler);
+
+        Map<String, String> lowered = new DependencyAccessSourceLowerer().lowerSources(sources);
+
+        String loweredHandler = lowered.get("org.example.Handler");
+        String generated = lowered.get("org.example.HandlerDependencyAccess");
+        assertTrue(loweredHandler.contains("@DelegatesTo({IRepository.class, IRegistry.class})"));
+        assertTrue(loweredHandler.contains("DependencyAccess<HandlerDependencyAccess>"));
+        assertTrue(generated.contains("IRepository repository()"));
+        assertTrue(generated.contains("IRegistry registry()"));
+    }
+
+    @Test
+    void ignoresTypeDeclarationTextInCommentsAndAnnotationStrings() {
+        Map<String, String> sources = sourcesFor("IRepository", "IRegistry");
+        String handler = sources.get("org.example.Handler").replace(
+                "@DelegatesTo\n",
+                "@DelegatesTo({IRepository.class, IRegistry.class})\n"
+                        + "@org.tavall.dependency.annotations.CompositionBoundary(\"interface Adapter; class Adapter\")\n"
+                        + "/* interface CommentedAdapter; class CommentedAdapter */\n");
+        sources.put("org.example.Handler", handler);
+
+        Map<String, String> lowered = new DependencyAccessSourceLowerer().lowerSources(sources);
+
+        String loweredHandler = lowered.get("org.example.Handler");
+        String generated = lowered.get("org.example.HandlerDependencyAccess");
+        assertTrue(loweredHandler.contains(
+                "@org.tavall.dependency.annotations.CompositionBoundary(\"interface Adapter; class Adapter\")"));
+        assertTrue(loweredHandler.contains("DependencyAccess<HandlerDependencyAccess>"));
+        assertTrue(generated.contains("IRepository repository()"));
+        assertTrue(generated.contains("IRegistry registry()"));
+    }
+
+    @Test
     void supportsMoreThanFourDependenciesWithoutAnArityLimit() {
         Map<String, String> lowered = new DependencyAccessSourceLowerer()
                 .lowerSources(sourcesFor(
