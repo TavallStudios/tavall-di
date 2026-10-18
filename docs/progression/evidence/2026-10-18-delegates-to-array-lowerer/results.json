@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "repository": "TavallStudios/tavall-di",
+  "pullRequest": 19,
+  "testedSource": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
+  "sourceGraph": {
+    "testedSources": [
+      {
+        "repository": "TavallStudios/tavall-di",
+        "sha": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
+        "role": "Tested merge tree; parents are PR #19 source 96b4afce1a94160db43e489a56f010bb64c9efde and staging/platform e68919729689affef8407bde07904722a2408bb3."
+      },
+      {
+        "repository": "TavallStudios/tavall-logging",
+        "sha": "e047172ab7c2be005baf0b2c4b46e230ead78417",
+        "role": "Required source dependency pinned by DI staging .tavallci/ci.yaml."
+      },
+      {
+        "repository": "TavallStudios/tavall-custom-enum-java",
+        "sha": "2284168910f755a0d13a68fbc821cedc14d0a49b",
+        "role": "Required source dependency pinned by DI staging .tavallci/ci.yaml."
+      }
+    ],
+    "dependencySubstitution": [
+      {
+        "coordinate": "org.tavall:tavall-logging:1.0.0",
+        "resolvedTo": "composite project :src-e047172",
+        "sourceSha": "e047172ab7c2be005baf0b2c4b46e230ead78417",
+        "dependencyInsightLogSha256": "60e8970c1eebfdad14a4c9af97ffb01aac4a22c0a77b44ecf9a76cb8e815b467"
+      },
+      {
+        "coordinate": "org.tavall:tavall-custom-enum-java:1.0.0",
+        "resolvedTo": "composite project :src-2284168",
+        "sourceSha": "2284168910f755a0d13a68fbc821cedc14d0a49b",
+        "dependencyInsightLogSha256": "369b7f891f8303addb092cb0b1aa7f47859c27ab906b8c2fa7b30f0580e8730e"
+      }
+    ]
+  },
+  "localValidation": {
+    "toolchain": {
+      "java": "25.0.1",
+      "gradle": "9.6.1"
+    },
+    "command": "./gradlew --include-build <tavall-logging@e047172> --include-build <tavall-custom-enum-java@2284168> clean check javadoc jar --no-daemon --console=plain --info",
+    "results": {
+      "compilation": "PASS",
+      "unitTests": {
+        "tests": 97,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xmlFiles": 21,
+        "xmlAggregateSha256": "b7a60301baae0bc04d531049f76d8fcdf787e20fe62f7d62f9427f887074ccfa"
+      },
+      "focusedClass": {
+        "name": "org.tavall.dependency.access.DependencyAccessSourceLowererTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "arrayDelegatesToRegression": "PASS",
+        "providedDependencyRegression": "PASS"
+      },
+      "verifyJarContents": "PASS",
+      "check": "PASS",
+      "javadoc": "PASS",
+      "jar": "PASS"
+    },
+    "javadocWarnings": {
+      "count": 100,
+      "kind": "Missing-comment warnings; task exited successfully."
+    },
+    "jarArtifact": {
+      "path": "build/libs/tavall-di-1.2.1.jar",
+      "sizeBytes": 132826,
+      "sha256": "8f297988bee6c9af2bc901aa52371a9413054e354bcfeea7ebf8ce237481ca08",
+      "published": false
+    },
+    "githubPackageCredentials": "GITHUB_TOKEN and GITHUB_ACTOR were unset; both private dependency coordinates resolved from the pinned source composites."
+  },
+  "pullRequestAtReport": {
+    "state": "OPEN",
+    "draft": true,
+    "head": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
+    "base": "e68919729689affef8407bde07904722a2408bb3",
+    "mergeable": true,
+    "githubActionsRuns": 0,
+    "combinedStatusContexts": [],
+    "gitGuardian": "SUCCESS",
+    "gitGuardianCompletedAt": "2026-10-18T05:07:54Z"
+  },
+  "separateAcceptanceBoundaries": {
+    "hostedExactSourceCI": "NOT_RUN",
+    "composedStagingValidation": "NOT_RUN",
+    "packageRelease": "NOT_PERFORMED",
+    "runtimeAcceptance": "NOT_RUN",
+    "deployment": "NOT_PERFORMED",
+    "mainPromotion": "NOT_PERFORMED"
+  },
+  "reviewEvidence": {
+    "kind": "report",
+    "media": "NOT_APPLICABLE",
+    "reason": "Backend source-lowering and regression tests have no visual behavior."
+  }
+}
