@@ -114,8 +114,8 @@ Tavall DI provides `DeploymentModuleProfile`, `ModuleProfile`, and the interface
 
 - **Module Type:** `SYSTEM`
 - **Secondary Role:** `LIBRARY`
-- **Runtime Owner:** `None`
-- **Current PR Stack:** README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17); platform integration [#12](https://github.com/TavallStudios/tavall-di/pull/12) (draft to `main`); feature/architecture work [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#11](https://github.com/TavallStudios/tavall-di/pull/11), [#14](https://github.com/TavallStudios/tavall-di/pull/14), and CI localization [#13](https://github.com/TavallStudios/tavall-di/pull/13) remain unmerged against `staging/platform`.
+- **Runtime Owner:** Consuming runtime modules own composition; `tavall-di` has no independent executable runtime.
+- **Current PR Stack:** Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) targets `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. Other sibling work remains on its existing PR branches.
 - **Module-local CI Definition:** Missing from current `main`: `.tavallci/ci.yaml` (required for a Tavall source/build module). This documentation PR records the gap and does not change CI configuration.
 
 ## Requirements / Compatibility

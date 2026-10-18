@@ -5,12 +5,13 @@
 > **Status:** Active progression record  
 > **Document Type:** `PROGRESSION`  
 > **Progression Scope:** `MODULE`  
-> **Module Type:** `LIBRARY`  
+> **Module Type:** `SYSTEM`<br>
+> **Secondary Role:** `LIBRARY`<br>
 > **Owning System:** `tavall-di`  
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
 > **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-09-27 5:30 PM PDT`
+> **Last Reconciled:** `2026-10-17 7:58 PM PDT`
 
 ## About
 
@@ -22,11 +23,12 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | --- | --- |
 | Repository | [TavallStudios/tavall-di](https://github.com/TavallStudios/tavall-di) |
 | Module | Root Gradle project (`tavall-di`) |
-| Module Type | `LIBRARY` |
+| Module Type | `SYSTEM` |
+| Secondary Role | `LIBRARY` |
 | Owning System | `tavall-di` |
-| Runtime Owner | `None` — not an independently executable runtime; no named owning runtime is recorded in the audited module metadata |
+| Runtime Owner | Consuming runtime modules own composition; `tavall-di` has no independent executable runtime |
 | Primary Consumers | Not established by this module-focused audit |
-| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17); platform integration [#12](https://github.com/TavallStudios/tavall-di/pull/12) (draft to `main`); provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10), module profiles [#11](https://github.com/TavallStudios/tavall-di/pull/11), architecture policy [#14](https://github.com/TavallStudios/tavall-di/pull/14), and CI localization [#13](https://github.com/TavallStudios/tavall-di/pull/13) remain unmerged against `staging/platform`. |
+| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17) merged to `main` on 2026-09-28. Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) targets `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. |
 | Audited Revision | [`d8ecc02302522e3acecc586c3f9e918007c82ca3`](https://github.com/TavallStudios/tavall-di/commit/d8ecc02302522e3acecc586c3f9e918007c82ca3) on `main` |
 
 ## Current Status
@@ -38,7 +40,7 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | Implementation | Source and a single root Gradle library boundary are present on `main` |
 | Integration | Library-facing API exists; consumer acceptance is not established by this audit |
 | Validation | Source/build/docs audited on GitHub; Gradle build and tests were not executed in this documentation-only pass |
-| Runtime / Consumer Acceptance | No runtime owner assigned; consumer acceptance not established |
+| Runtime / Consumer Acceptance | No independent DI runtime; named consumer acceptance is not established by this mainline audit |
 | Deployment Verification | `N/A` — non-deployable library |
 | Primary Blocker | The mainline test suite has not been executed in this audit. Several feature/architecture PRs remain unmerged on `staging/platform`, so this record describes `main` only.
 | Next Slice | Add the module-local CI definition, obtain build/test evidence, and verify compatibility with named consumers where applicable |
@@ -137,3 +139,11 @@ Fresh native CI request `1578d22a-3792-42b0-be16-acc4ff1e7b4e` failed artifact p
 Native phase correction: invocation `1578d22a-3792-42b0-be16-acc4ff1e7b4e` on earlier DI source `abf6397244f62bad9d2e952f7dd693fc1301b672` is verified `COMPLETED`, exit `0`. The compiled caller exports after invocation and removes its operation workspace on export failure. Detailed check results and approved artifact/evidence publication remain unavailable; this does not establish current-head native acceptance.
 
 Review follow-up: metadata now carries its owning map for scoped factory/product injection. Factory-class repair preserves live product identity, and construction-strategy changes roll back if a later provider fails. Generation-owned products retain the existing registration/retirement path.
+
+## 2026-10-18 Generated access provenance correction
+
+PR #10 adds explicit generated-origin metadata to lowered dependency access views. Bootstrap uses the existing `@CompositionBoundary` annotation and the lowerer's exact class identity instead of class-name suffix matching. A regression verifies that an authored `BusinessDependencyAccess.endpoint(): String` remains a business access object and is not expanded as a generated dependency view.
+
+Implementation source `525fef5d9f03ba81fd5218368a1d8328776b3827` passes Java 25 clean check, Javadoc, JAR packaging and boundary validation: 96 tests, zero failures/errors/skips. Javadoc reports 100 existing missing-comment warnings. The local JUnit result is recorded separately from hosted exact-source and staging acceptance.
+
+At this checkpoint PR #10 remains open against `staging/platform` under Draft staging root #26. No composed staging acceptance, main promotion, package release, or deployment is claimed. Hosted exact-source acceptance, immutable report publication, and current-head advisory review remain pending.
