@@ -8,6 +8,29 @@ build:
   gradle: 9.6.1
 resources:
   mode: SYSTEM
+requiredChecks:
+  - compilation
+  - unit-tests
+  - quality
+  - artifact
+checks:
+  compilation:
+    executor: gradle
+    tasks:
+      - classes
+  unit-tests:
+    executor: gradle
+    tasks:
+      - test
+  quality:
+    executor: gradle
+    tasks:
+      - verifyJarContents
+      - javadoc
+  artifact:
+    executor: gradle
+    tasks:
+      - tavallCiArtifact
 dependencies:
   - kind: source
     identity: TavallStudios/tavall-logging
@@ -34,26 +57,3 @@ artifacts:
   - name: tavall-di
     path: build/tavall-ci-artifacts/tavall-di.jar
     channel: RELEASE
-requiredChecks:
-  - compilation
-  - unit-tests
-  - quality
-  - artifact
-checks:
-  compilation:
-    executor: gradle
-    tasks:
-      - classes
-  unit-tests:
-    executor: gradle
-    tasks:
-      - test
-  quality:
-    executor: gradle
-    tasks:
-      - verifyJarContents
-      - javadoc
-  artifact:
-    executor: gradle
-    tasks:
-      - tavallCiArtifact

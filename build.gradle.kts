@@ -7,6 +7,7 @@ plugins {
 }
 
 group = "org.tavall"
+extra["versionTagPrefix"] = "tavall-di"
 version = providers.gradleProperty("tavallDiVersion").orElse("1.2.1").get()
 
 java {
