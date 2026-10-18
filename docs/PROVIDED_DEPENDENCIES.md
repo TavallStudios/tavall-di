@@ -34,6 +34,8 @@ public final class QueryService implements DependencyAccess<DataSource> {
 
 For multiple inputs, use the existing expanded declaration, such as `DependencyAccess<DatabaseConfiguration, PoolSettings>`, and named getters returning `getInstance().databaseConfiguration()` and `getInstance().poolSettings()`. Source lowering generates the typed access class for a factory annotated with `@ProvidedDependency`, just as it does for `@DelegatesTo` consumers. The expanded declaration requires the existing lowering task before Java compilation.
 
+Lowered access classes carry `@CompositionBoundary` with the source lowerer’s exact class identity so bootstrap can recognize generated views without inferring their origin from a class name. This identifies generated infrastructure only; `@DelegatesTo` and the typed access contract still declare bindings, and authored `IDependencyAccess` implementations need no marker.
+
 The first annotation token is primary; remaining tokens are aliases. They share one metadata object and one instance. Consumers do not need a separate third-party lookup path.
 
 Bootstrap publishes ordinary bindings before initializing them, then constructs factories after their declared typed or injected prerequisites are initialized. A consumer requiring a provided object during injection or lifecycle initialization receives it before its own initialization. Provider chains and the produced object’s own declared inputs are initialized before lifecycle callbacks; construction cycles fail explicitly. A typed token already owned by the same object is self-access, not a cycle. An undeclared lookup inside arbitrary user code is not a bootstrap dependency declaration.

@@ -11,6 +11,8 @@ package org.tavall.dependency.injection.helpers;
 
 import org.tavall.dependency.IDependencyFactory;
 import org.tavall.dependency.DependencyAccess;
+import org.tavall.dependency.access.DependencyAccessSourceLowerer;
+import org.tavall.dependency.annotations.CompositionBoundary;
 import org.tavall.dependency.annotations.Inject;
 import org.tavall.dependency.maps.interfaces.IDependencyMap;
 import org.tavall.dependency.IDependencyInjectableInterface;
@@ -399,15 +401,20 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
     }
 
     private boolean isGeneratedAccess(Object instance) {
-        return instance.getClass().getSimpleName().endsWith("DependencyAccess")
-                && instance instanceof org.tavall.dependency.IDependencyAccess;
+        if (!(instance instanceof org.tavall.dependency.IDependencyAccess)
+                || instance instanceof DependencyAccess<?>) {
+            return false;
+        }
+        CompositionBoundary boundary = instance.getClass().getAnnotation(CompositionBoundary.class);
+        return boundary != null && DependencyAccessSourceLowerer.class.getName().equals(boundary.value());
     }
 
     private void initializeGeneratedInputs(Object access, BootstrapInitialization initialization, Object owner) {
         if (!initialization.activeAccess.add(access)) throw new IllegalStateException("Cyclic generated dependency access");
         try {
             for (Method method : access.getClass().getDeclaredMethods()) {
-                if (!Modifier.isStatic(method.getModifiers()) && method.getParameterCount() == 0
+                if (Modifier.isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers())
+                        && !method.isSynthetic() && method.getParameterCount() == 0
                         && method.getReturnType() != void.class && method.getReturnType() != IDependencyMap.class) {
                     initializeToken(method.getReturnType(), initialization, owner);
                 }

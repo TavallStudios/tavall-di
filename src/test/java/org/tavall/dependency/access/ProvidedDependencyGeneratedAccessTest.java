@@ -1,6 +1,7 @@
 package org.tavall.dependency.access;
 
 import org.junit.jupiter.api.Test;
+import org.tavall.dependency.annotations.CompositionBoundary;
 import org.tavall.dependency.injection.helpers.DependencyInjectorHelper;
 import org.tavall.dependency.maps.DependencyMap;
 import java.util.LinkedHashMap;
@@ -58,8 +59,46 @@ class ProvidedDependencyGeneratedAccessTest {
             helper.setupDISystem(loader);
             Object consumer = map.getInstance(loader.loadClass("provided.generated.Consumer"));
             assertEquals(4L, consumer.getClass().getMethod("timeoutSeconds").invoke(consumer));
+            CompositionBoundary generatedBoundary = loader.loadClass("provided.generated.ConsumerDependencyAccess")
+                    .getAnnotation(CompositionBoundary.class);
+            assertNotNull(generatedBoundary);
+            assertEquals(DependencyAccessSourceLowerer.class.getName(), generatedBoundary.value());
             assertSame(map.getInstance(java.net.http.HttpClient.class), map.getInstance(java.net.http.HttpClient.class));
         } finally { map.clear(); }
+    }
+
+    @Test
+    void authoredAccessWithGeneratedLookingNameDoesNotExpandBusinessMethods() throws Exception {
+        Map<String, String> sources = new LinkedHashMap<>();
+        sources.put("provided.authored.BusinessDependencyAccess", """
+                package provided.authored;
+                @org.tavall.dependency.annotations.DelegatesTo
+                public final class BusinessDependencyAccess implements org.tavall.dependency.IDependencyAccess {
+                    public String endpoint() { return "business-endpoint"; }
+                }
+                """);
+        sources.put("provided.authored.Consumer", """
+                package provided.authored;
+                import org.tavall.dependency.DependencyAccess;
+                @org.tavall.dependency.annotations.DelegatesTo
+                public final class Consumer implements DependencyAccess<BusinessDependencyAccess> {
+                    public String endpoint() { return getInstance().endpoint(); }
+                }
+                """);
+        var output = DependencyAccessTestCompiler.compileSources(sources);
+        var map = DependencyMap.getDependencyMap();
+        map.clear();
+        try (var loader = DependencyAccessTestCompiler.createClassLoader(output)) {
+            var helper = new DependencyInjectorHelper<Object, Object>();
+            helper.setBasePackage("provided.authored");
+            helper.setupDISystem(loader);
+            Object consumer = map.getInstance(loader.loadClass("provided.authored.Consumer"));
+            Object businessAccess = map.getInstance(loader.loadClass("provided.authored.BusinessDependencyAccess"));
+            assertEquals("business-endpoint", consumer.getClass().getMethod("endpoint").invoke(consumer));
+            assertFalse(businessAccess.getClass().isAnnotationPresent(CompositionBoundary.class));
+        } finally {
+            map.clear();
+        }
     }
 
     @Test
