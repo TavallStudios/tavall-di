@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "repository": "TavallStudios/tavall-di",
+  "pullRequest": 13,
+  "testedSource": "8160c7dc828899a593947d7744492548b3a989a5",
+  "currentPrAtReport": {
+    "state": "OPEN",
+    "draft": true,
+    "mergeable": true,
+    "head": "8160c7dc828899a593947d7744492548b3a989a5",
+    "base": "4b7522852b5d87918e6b7faa726ec86128d43870",
+    "githubStatusContexts": [],
+    "githubActionsRuns": []
+  },
+  "sourceGraph": {
+    "integration": {
+      "firstParent": "d1d08715d1320826e314dddf086dd39782e4ead4",
+      "secondParent": "4b7522852b5d87918e6b7faa726ec86128d43870",
+      "mergeCommit": "f8dd7de15e4ed823fa0127c00d3f7f1a72e75bae",
+      "followUpConfigurationCommit": "8160c7dc828899a593947d7744492548b3a989a5"
+    },
+    "testedSources": [
+      {
+        "repository": "TavallStudios/tavall-di",
+        "sha": "8160c7dc828899a593947d7744492548b3a989a5",
+        "role": "CI migration reconciled against current staging, retaining the current DI source/version graph and removing legacy dependency repositories and Actions workflows."
+      },
+      {
+        "repository": "TavallStudios/tavall-logging",
+        "sha": "e047172ab7c2be005baf0b2c4b46e230ead78417",
+        "role": "Exact source dependency pinned by .tavallci/ci.yaml and included in local composite validation."
+      },
+      {
+        "repository": "TavallStudios/tavall-custom-enum-java",
+        "sha": "2284168910f755a0d13a68fbc821cedc14d0a49b",
+        "role": "Exact source dependency retained from current staging and included in local composite validation."
+      }
+    ],
+    "definitionSha256": "c41ec3f5ce391db1a801ae694ce7ef9ffe5895fb0c7a3e49a849e46e6e5a3114",
+    "buildFileSha256": "2e1c6340181069e6312aacf6461745034959e6f30e935dd0a08f0228f6eed2aa"
+  },
+  "localValidation": {
+    "command": "JAVA_HOME=/opt/jdk-25.0.1 PATH=/opt/jdk-25.0.1/bin:$PATH ./gradlew --include-build <tavall-logging@e047172> --include-build <tavall-custom-enum-java@2284168> --no-daemon --console=plain --info clean check assemble javadoc tavallCiArtifact",
+    "toolchain": {
+      "java": "25.0.1",
+      "gradle": "9.6.1"
+    },
+    "results": {
+      "compilation": "PASS",
+      "unitTests": {
+        "tests": 98,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xmlFiles": 21,
+        "xmlAggregateSha256": "6496250cd0e5cb817a499a9cb65e1ea73311d6344ba68e6e4a788521693d9142"
+      },
+      "check": "PASS",
+      "assemble": "PASS",
+      "javadoc": "PASS",
+      "verifyJarContents": "PASS",
+      "tavallCiArtifact": "PASS"
+    },
+    "javadocWarnings": {
+      "count": 100,
+      "kind": "Missing-comment warnings; task exited successfully."
+    },
+    "artifacts": [
+      {
+        "path": "build/libs/tavall-di-1.2.1.jar",
+        "sizeBytes": 133796,
+        "sha256": "7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9",
+        "published": false
+      },
+      {
+        "path": "build/tavall-ci-artifacts/tavall-di.jar",
+        "sizeBytes": 133796,
+        "sha256": "7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9",
+        "published": false
+      }
+    ],
+    "log": {
+      "path": "/srv/dev-storage/workspaces/tavall-web-content/working/library-pagination-20261017/.tavallai/receipts/build/di-pr13-current-staging-reconcile-followup-20261018-gradle.log",
+      "sha256": "d38d1e3d7acd2dea1e10d9870bb9aab1994e27e33cbb9cbbe06cbb26fa0afa5e"
+    },
+    "gitDiffCheck": "PASS"
+  },
+  "tavallCiExecution": {
+    "status": "UNAUTHORIZED_BEFORE_SOURCE_EXECUTION",
+    "origin": "chatgpt",
+    "profile": "all",
+    "expectedHead": "8160c7dc828899a593947d7744492548b3a989a5",
+    "requestCommandId": "e10bfd6a-79e7-427b-8506-a17543aa1d7e",
+    "evidenceHandle": "tavall-storage://dev-storage/jobs/868c5c69-aa3a-472a-b82c-95d635de37ad",
+    "failureClass": "AUTHORIZATION_CONTEXT",
+    "message": "environment repository execution requires CONTROL environment context",
+    "sourceExecution": "NOT_STARTED",
+    "githubCheckPublished": false
+  },
+  "tavallAiIntegrationHarness": {
+    "status": "DEPENDENCY_UNAVAILABLE",
+    "sourceHead": "8160c7dc828899a593947d7744492548b3a989a5",
+    "exitCode": 1,
+    "stage": "compileJava",
+    "message": "Harness did not materialize the pinned Tavall Logging and Custom Enum source composites; Gradle could not resolve those private coordinates from Maven repositories.",
+    "classification": "Harness input/materialization gap; no source test failure claimed."
+  },
+  "reviewAndBot": {
+    "tavallPrReviewRole": "Completed in context; no unresolved source finding was identified in the CI/build configuration reconciliation.",
+    "tavallGithubBot": "UNAVAILABLE: dedicated Bot runtime is not deployed and no current GitHub Bot check was published.",
+    "codexReview": "NOT_REQUESTED; user directed disabling Codex review and using checks/Bot."
+  },
+  "acceptanceBoundaries": {
+    "hostedExactSourceTavallCi": "UNAUTHORIZED_BEFORE_SOURCE_EXECUTION",
+    "githubBotCheck": "NOT_AVAILABLE",
+    "githubActions": "DISABLED; no workflow runs",
+    "localExactSourceGradle": "PASS",
+    "packagePublication": "NOT_PERFORMED",
+    "runtimeAcceptance": "NOT_RUN",
+    "deployment": "NOT_PERFORMED",
+    "mainPromotion": "NOT_PERFORMED"
+  }
+}
