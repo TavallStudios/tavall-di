@@ -33,7 +33,7 @@ Add the published artifact to a Gradle project:
 
 ```kotlin
 dependencies {
-    implementation("org.tavall:tavall-di:1.0.0")
+    implementation("org.tavall:tavall-di:1.2.1")
 }
 ```
 
@@ -115,8 +115,8 @@ Tavall DI provides `DeploymentModuleProfile`, `ModuleProfile`, and the interface
 - **Module Type:** `SYSTEM`
 - **Secondary Role:** `LIBRARY`
 - **Runtime Owner:** Consuming runtime modules own composition; `tavall-di` has no independent executable runtime.
-- **Current PR Stack:** Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) targets `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. Other sibling work remains on its existing PR branches.
-- **Module-local CI Definition:** Missing from current `main`: `.tavallci/ci.yaml` (required for a Tavall source/build module). This documentation PR records the gap and does not change CI configuration.
+- **Current PR Stack:** PRs [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#19](https://github.com/TavallStudios/tavall-di/pull/19), [#13](https://github.com/TavallStudios/tavall-di/pull/13), and [#14](https://github.com/TavallStudios/tavall-di/pull/14) merged through staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) to `main` on 2026-10-18 at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`. `staging/platform` is synchronized to the same commit.
+- **Module-local CI Definition:** `.tavallci/ci.yaml` is present on `main` and defines four required checks with exact source dependencies. Local Java 25 / Gradle 9.6.1 validation passes on the integrated source; the Tavall Bot published a local exact-source check. Hosted TCI remains unrun because no active CONTROL developer environment is registered. GitHub Actions are disabled.
 
 ## Requirements / Compatibility
 

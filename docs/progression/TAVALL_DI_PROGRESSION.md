@@ -28,22 +28,22 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | Owning System | `tavall-di` |
 | Runtime Owner | Consuming runtime modules own composition; `tavall-di` has no independent executable runtime |
 | Primary Consumers | Not established by this module-focused audit |
-| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17) merged to `main` on 2026-09-28. PRs [#10](https://github.com/TavallStudios/tavall-di/pull/10) and [#19](https://github.com/TavallStudios/tavall-di/pull/19) merged into `staging/platform`. CI migration PR #13 is reconciled to the current staging head but remains Draft pending Tavall CI execution; architecture PR #14 remains deferred. Staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. |
-| Audited Revision | [`d8ecc02302522e3acecc586c3f9e918007c82ca3`](https://github.com/TavallStudios/tavall-di/commit/d8ecc02302522e3acecc586c3f9e918007c82ca3) on `main` |
+| Current Branch / PR Stack | PRs [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#19](https://github.com/TavallStudios/tavall-di/pull/19), [#13](https://github.com/TavallStudios/tavall-di/pull/13), and [#14](https://github.com/TavallStudios/tavall-di/pull/14) merged to `main` through staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`. `staging/platform` is synchronized to the same commit; no child PRs from this integration remain open. |
+| Audited Revision | [`6e45442bcd89c0efdc9505d0e48975c7aefe8450`](https://github.com/TavallStudios/tavall-di/commit/6e45442bcd89c0efdc9505d0e48975c7aefe8450) on `main` |
 
 ## Current Status
 
 | Field | State |
 | --- | --- |
 | Overall State | `PARTIAL` |
-| Current Phase | Mainline implementation present; validation and consumer acceptance remain incomplete |
-| Implementation | Source and a single root Gradle library boundary are present on `main` |
-| Integration | Library-facing API exists; consumer acceptance is not established by this audit |
-| Validation | Source/build/docs audited on GitHub; Gradle build and tests were not executed in this documentation-only pass |
+| Current Phase | Main source integration complete; release and named consumer acceptance remain separate |
+| Implementation | Main includes provided dependency factories, lowerer fixes, constructor policy, and source-owned CI configuration |
+| Integration | PRs #10, #19, #13, and #14 are integrated on main; named consumer acceptance remains unestablished |
+| Validation | Java 25.0.1 / Gradle 9.6.1 local integrated check passed: 103 tests, zero failures/errors/skips, and `verifyJarContents`; Tavall Bot local exact-source check passed on the same source tree |
 | Runtime / Consumer Acceptance | No independent DI runtime; named consumer acceptance is not established by this mainline audit |
 | Deployment Verification | `N/A` — non-deployable library |
-| Primary Blocker | The mainline test suite has not been executed in this audit. Several feature/architecture PRs remain unmerged on `staging/platform`, so this record describes `main` only.
-| Next Slice | Add the module-local CI definition, obtain build/test evidence, and verify compatibility with named consumers where applicable |
+| Unrun Acceptance | Hosted TCI has not executed because CONTROL has no active developer environment; package release and named consumer acceptance are also unrun |
+| Next Slice | Restore the supported CONTROL environment path, run hosted TCI, and validate named consumers before an approved package release |
 
 ## Progression Timeline
 
@@ -60,9 +60,9 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 
 | Validation | State | Evidence | Remaining Work |
 | --- | --- | --- | --- |
-| Architecture / module boundary | Audited | Current `settings.gradle.kts`, `build.gradle.kts`, source tree, README and tracked docs on `main` at [`d8ecc02302522e3acecc586c3f9e918007c82ca3`](https://github.com/TavallStudios/tavall-di/commit/d8ecc02302522e3acecc586c3f9e918007c82ca3) | Confirm future boundary changes in the owning repo |
-| Unit | Test sources present; execution not verified | 59 production Java files and 49 Java files under `src/test/java` (17 are named `*Test.java`) | Run applicable Gradle checks after CI ownership is established |
-| Integration | Not verified | Current Gradle dependencies and repository docs | Confirm named consumer integration and compatibility |
+| Architecture / module boundary | Locally validated | Integrated main tree `6e45442bcd89c0efdc9505d0e48975c7aefe8450`; constructor policy and the existing source-lowering boundary passed | Re-run against later source changes |
+| Unit | Passed locally | 103 tests, zero failures/errors/skips; Java 25.0.1 / Gradle 9.6.1; exact Logging and Custom Enum source composites | Run hosted TCI when a CONTROL developer environment is active |
+| Integration | DI staging-to-main tree passed locally | Bot check `tavall-local/exact-source` on staging head `87d35f8fee060128d82943c4d18b1a6aa06c6774`; main merge `6e45442` has the same tree | Validate named consumer integration and compatibility |
 | Consumer / Runtime | Not established | No named runtime owner or accepted consumer evidence recorded in this audit | Identify and validate runtime consumers |
 | End-to-End | N/A | Root module is a non-deployable library | Validate through owning runtime when one is identified |
 
@@ -70,20 +70,21 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 
 | Dependency / Consumer | Relationship | State | Evidence |
 | --- | --- | --- | --- |
-| Java 25 | Build/runtime API baseline | Declared by the root Gradle toolchain | `build.gradle.kts` at [`d8ecc0230252`](https://github.com/TavallStudios/tavall-di/blob/d8ecc02302522e3acecc586c3f9e918007c82ca3/build.gradle.kts) |
-| Module implementation | Current boundary | Current source includes `DependencyLoader`, maps and metadata, lifecycle annotations, bundles, `@DelegatesTo`, `DependencyAccess`, an annotation processor, and a source-lowering entry point. The system final document and access-style guide are present. | Main source tree at [`d8ecc0230252`](https://github.com/TavallStudios/tavall-di/tree/d8ecc02302522e3acecc586c3f9e918007c82ca3/src/main) |
-| tavall-logging | API dependency `org.tavall:tavall-logging:1.0.0` | Declared in the current main build; artifact resolution not verified | [`build.gradle.kts`](https://github.com/TavallStudios/tavall-di/blob/d8ecc02302522e3acecc586c3f9e918007c82ca3/build.gradle.kts) |
+| Java 25 | Build/runtime API baseline | Declared by the root Gradle toolchain and validated locally | `build.gradle.kts` on main `6e45442` |
+| Module implementation | Current boundary | Main includes provided dependency factories, source lowering, and managed-constructor architecture enforcement. | Main source tree at [`6e45442`](https://github.com/TavallStudios/tavall-di/tree/6e45442bcd89c0efdc9505d0e48975c7aefe8450/src/main) |
+| tavall-logging | API dependency `org.tavall:tavall-logging:1.0.0` | Exact source `e047172ab7c2be005baf0b2c4b46e230ead78417` used in local validation | `.tavallci/ci.yaml` on main |
+| tavall-custom-enum-java | API dependency `org.tavall:tavall-custom-enum-java:1.0.0` | Exact source `2284168910f755a0d13a68fbc821cedc14d0a49b` used in local validation | `.tavallci/ci.yaml` on main |
 
-## Blockers
+## Remaining Acceptance Work
 
-| Blocker | Impact | Resolution |
+| Open acceptance item | Impact | Next action |
 | --- | --- | --- |
-| Module-local `.tavallci/ci.yaml` is absent from current main | Required module-level CI ownership is not present; build/test validation is not established by this audit | Add the CI definition in a separate CI-scoped change and record its resulting check evidence |
-| The mainline test suite has not been executed in this audit. Several feature/architecture PRs remain unmerged on `staging/platform`, so this record describes `main` only. | Module maturity or compatibility cannot be claimed beyond inspected source/build history | Add the missing validation and consumer evidence; preserve the current implementation boundary |
+| Hosted TCI is unrun because CONTROL has no active developer environment | No hosted Tavall CI result is claimed; local exact-source checks and Bot status are available | Restore the supported CONTROL environment path and run TCI on current main |
+| Named consumer and package-release acceptance remain unrun | Compatibility and published-artifact acceptance are not established by this library-level merge | Validate consuming repositories, then publish only through the approved release workflow |
 
 ## Next Slice
 
-Run the tracked unit/integration suite and record its result; add missing lifecycle or compatibility cases if failures or gaps surface. Add `.tavallci/ci.yaml` as a separate CI-scoped change, then verify the module through named consumers or an owning runtime if one is assigned.
+Restore the supported CONTROL developer environment, run hosted TCI, then validate named consumers before an approved package release. Continue source fixes and independent PR work while those acceptance layers are prepared.
 
 ## Related Documentation
 
@@ -103,8 +104,8 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-18 UTC | PR #13 merged to `staging/platform` at `01ec52f58e9870590b50232a4fad8cdd2cce0e67`; PR #14 head `f927073d35dc5083a6287b5ad088bfbabf892f16` is integrated after it. Both current PR heads pass local exact-source checks and have passing Tavall Bot `tavall-local/exact-source` checks. |
-| Notion | `PENDING_SYNC` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | Last verified 2026-10-18 06:32 UTC | Update the twin with the current-head local checks and staging merges after this GitHub integration is pushed. |
+| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-18 14:11 UTC | PR #13 merged at `01ec52f58e9870590b50232a4fad8cdd2cce0e67`; PR #14 merged at `87d35f8fee060128d82943c4d18b1a6aa06c6774`; staging root #26 merged to main at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`; main and staging are synchronized. |
+| Notion | `PENDING_SYNC` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | Last verified 2026-10-18 06:32 UTC | Sync the current main merge, local exact-source result, and Bot check after the GitHub progression update. |
 
 ### Update History
 
@@ -119,6 +120,8 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 | 2026-10-17 11:08 PM PDT | GitHub + Notion | `UPDATED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:50 PM PDT | PR #13 current source `8160c7dc828899a593947d7744492548b3a989a5`; 98 local exact-source tests; direct TCI request rejected before source execution for missing CONTROL environment context; [PR #13 results](evidence/2026-10-18-di-pr13-ci-migration/results.json); post-fetch verified | Reconciled current staging dependencies/checks and documented the difference between local source validation, unavailable Bot/TCI execution, and package/runtime acceptance. |
 | 2026-10-18 06:30 UTC | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:50 PM PDT | DI PR #14 tested source `83f6107605e5c4d8e45d34942861a5e6c2307baf`; 103 Java 25 tests; TCI request `593e7f86-2090-4737-b07d-e304c45c69e4` rejected before source execution; post-fetch verified 2026-10-18T06:30:26Z | Reconciled PR #14 with current staging and replaced the Builder call-site exception with the documented blanket managed-constructor prohibition. |
 | 2026-10-18 14:05 UTC | GitHub | `MERGED_TO_STAGING` | `TavallStudios/tavall-di` PRs #13 and #14 → `staging/platform` | 2026-10-18 06:30 UTC | PR #13 merge commit `01ec52f58e9870590b50232a4fad8cdd2cce0e67`; PR #14 local exact-source head `f927073d35dc5083a6287b5ad088bfbabf892f16`; local validation comments #6250781268 and #6250781477; Bot local check `tavall-local/exact-source` passed on both heads | Merged while Draft using the owner-authorized local-check path; no Codex review or GitHub Actions run. Hosted TCI remains unrun because no active CONTROL developer environment is registered. |
+| 2026-10-18 14:11 UTC | GitHub | `MERGED_TO_MAIN` | Staging root PR #26 → `main` | `staging/platform@87d35f8fee060128d82943c4d18b1a6aa06c6774` | Main merge commit `6e45442bcd89c0efdc9505d0e48975c7aefe8450`; integrated tree `f4639a7a7ee5d5c2b424e23aff004ee55d880bce`; 103 local tests; Bot check `tavall-local/exact-source` passed on the staging head | Source promotion completed with local and Bot evidence. No hosted TCI, package publication, downstream acceptance, or deployment is claimed. |
+| 2026-10-18 14:11 UTC | GitHub | `MERGED_TO_MAIN` | Staging root PR #26 → `main` | `staging/platform@87d35f8fee060128d82943c4d18b1a6aa06c6774` | Main merge commit `6e45442bcd89c0efdc9505d0e48975c7aefe8450`; integrated tree `f4639a7a7ee5d5c2b424e23aff004ee55d880bce`; 103 local tests; Bot check `tavall-local/exact-source` passed on exact staging head | Source promotion completed with local and Bot evidence. No hosted TCI, package publication, downstream acceptance, or deployment is claimed. |
 
 </details>
 
@@ -156,7 +159,7 @@ Implementation source `525fef5d9f03ba81fd5218368a1d8328776b3827` passes Java 25 
 
 The typed hosted CI request `38dd54fc-f37d-4ea2-953a-c9c6982f34af` for PR head `f5352f882625a974c9d33a7848fd3fd183fe02d4` was rejected before source execution with `UNAUTHORIZED: environment repository execution requires CONTROL environment context`. No hosted checks ran; GitHub returned no status contexts or PR workflow runs for that head. This infrastructure boundary is separate from the local test result.
 
-PR #10 merged into `staging/platform` on 2026-10-18 at `e68919729689affef8407bde07904722a2408bb3`. Draft staging root #26 remains the parent integration to `main`; this PR #10 local validation did not establish composed staging acceptance, main promotion, package release, or deployment.
+PR #10 merged into `staging/platform` on 2026-10-18 at `e68919729689affef8407bde07904722a2408bb3`. At that checkpoint, staging root #26 remained Draft; it later merged to `main` at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`. The PR #10 local validation did not establish composed staging acceptance, package release, or deployment.
 
 ## 2026-10-18 — DelegatesTo array annotation candidate
 
@@ -186,7 +189,7 @@ The original P2 thread is replied to and resolved. The installed PR Review Agent
 
 ## 2026-10-18 — PR #19 merged into persistent staging
 
-[DI PR #19](https://github.com/TavallStudios/tavall-di/pull/19) merged into `staging/platform` on 2026-10-18 at `8a9b90145daad94331e1ee7a6af3a1cecc9a75a9`. The merge integrates the source branch, original staging reconciliation `0a3b059`, scanner fix `1bee6d6`, reviewed class-token correction `e2d97a5`, and evidence artifact `d7ed682`. The current staging root #26 points at the merge commit and remains Draft to `main`.
+[DI PR #19](https://github.com/TavallStudios/tavall-di/pull/19) merged into `staging/platform` on 2026-10-18 at `8a9b90145daad94331e1ee7a6af3a1cecc9a75a9`. The merge integrates the source branch, original staging reconciliation `0a3b059`, scanner fix `1bee6d6`, reviewed class-token correction `e2d97a5`, and evidence artifact `d7ed682`. At this checkpoint, staging root #26 was Draft; it later merged to `main` at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`.
 
 The exact tested code source `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d` passes Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar` with the pinned Logging and Custom Enum source composites: 98 tests, zero failures/errors/skips, all 9 lowerer cases, and `verifyJarContents`. Javadoc has 100 missing-comment warnings. The local-only JAR SHA-256 is `7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9`. [The verified exact-source report](evidence/2026-10-18-delegates-to-array-lowerer/results.json) separates tested source from evidence/current head.
 
@@ -207,3 +210,11 @@ Hosted TCI did not execute because no active CONTROL developer environment is re
 Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar` passed on the exact PR head with the pinned Logging and Custom Enum source composites: 103 tests, zero failures/errors/skips, and `verifyJarContents` passed. The local-only JAR SHA-256 is `e324f44e1a3a5b56948145185b95a7f2dad8229bafbe48057716884f8b6d8458`. The [current-head local validation comment](https://github.com/TavallStudios/tavall-di/pull/14#issuecomment-6250781477) and passing Bot check `tavall-local/exact-source` record this result.
 
 Hosted TCI did not execute because no active CONTROL developer environment is registered. No Actions run or Codex review was requested. Package publication, consumer/runtime acceptance, deployment, and main promotion remain separate.
+
+## 2026-10-18 — Staging root #26 merged to main
+
+Staging root PR #26 merged to `main` at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`. The main merge has the former main head `c6ecaee3027e5e42f6a0fb11a40700925968498f` and staging head `87d35f8fee060128d82943c4d18b1a6aa06c6774` as parents. `staging/platform` was fast-forwarded to the same merge commit.
+
+The integrated tree passed Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar`: 103 tests, zero failures/errors/skips, and `verifyJarContents`; the local JAR SHA-256 is `e324f44e1a3a5b56948145185b95a7f2dad8229bafbe48057716884f8b6d8458`. The Bot's `tavall-local/exact-source` check passed on staging head `87d35f8`, whose tree matches main's merge tree. Hosted TCI was not run because no active CONTROL developer environment exists. No GitHub Actions run or Codex review was used.
+
+This promotes source only. No package was published, no named consumer/runtime acceptance was performed, and no deployment was needed for this non-deployable library.
