@@ -114,8 +114,8 @@ Tavall DI provides `DeploymentModuleProfile`, `ModuleProfile`, and the interface
 
 - **Module Type:** `SYSTEM`
 - **Secondary Role:** `LIBRARY`
-- **Runtime Owner:** `None`
-- **Current PR Stack:** README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17); platform integration [#12](https://github.com/TavallStudios/tavall-di/pull/12) (draft to `main`); feature/architecture work [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#11](https://github.com/TavallStudios/tavall-di/pull/11), [#14](https://github.com/TavallStudios/tavall-di/pull/14), and CI localization [#13](https://github.com/TavallStudios/tavall-di/pull/13) remain unmerged against `staging/platform`.
+- **Runtime Owner:** Consuming runtime modules own composition; `tavall-di` has no independent executable runtime.
+- **Current PR Stack:** Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) targets `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. Other sibling work remains on its existing PR branches.
 - **Module-local CI Definition:** Missing from current `main`: `.tavallci/ci.yaml` (required for a Tavall source/build module). This documentation PR records the gap and does not change CI configuration.
 
 ## Requirements / Compatibility
@@ -161,3 +161,7 @@ No tracked license file is present in the current repository tree.
 ## Generation ownership
 
 See [Generation-owned dependency access](docs/GENERATION_OWNED_DEPENDENCY_ACCESS.md) for managed registration, aliases, parent references and stale-reference rejection. Root CI is [`.tavallci/ci.yaml`](.tavallci/ci.yaml). This module is a `SYSTEM` with a secondary `LIBRARY` role, composed by its consuming runtime; it owns no independent process.
+
+## Provided dependencies
+
+Third-party factories implement `IDependencyFactory<T>.create()` and use the existing typed `DependencyAccess` and named getters for inputs. Consumers use the same pattern. See [Provided dependencies](docs/PROVIDED_DEPENDENCIES.md) for the factory/consumer example, generated access, bootstrap ordering and scoped lifecycle contract.

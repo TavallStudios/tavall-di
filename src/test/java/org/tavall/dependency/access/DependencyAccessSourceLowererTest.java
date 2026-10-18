@@ -88,6 +88,15 @@ class DependencyAccessSourceLowererTest {
     }
 
     @Test
+    void providedFactoryUsesTheExistingExpandedTypedAccessGenerator() {
+        Map<String, String> sources = sourcesFor("IConfiguration", "ISettings");
+        sources.put("org.example.Handler", sources.get("org.example.Handler").replace("@DelegatesTo", "@org.tavall.dependency.annotations.ProvidedDependency({String.class})"));
+        Map<String, String> lowered = new DependencyAccessSourceLowerer().lowerSources(sources);
+        assertTrue(lowered.get("org.example.HandlerDependencyAccess").contains("IConfiguration configuration()"));
+        assertTrue(lowered.get("org.example.HandlerDependencyAccess").contains("ISettings settings()"));
+    }
+
+    @Test
     void rejectsWildcardsTypeVariablesDuplicatesAndAccessorCollisions() {
         assertInvalid("? extends IDependencyOne", "IDependencyTwo", "wildcard");
         assertInvalid("Value", "IDependencyTwo", "type variable");
