@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "repository": "TavallStudios/tavall-di",
   "pullRequest": 19,
-  "testedSource": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
+  "testedSource": "1bee6d6222f19d81258274250eac8d9729c8e541",
   "sourceGraph": {
     "testedSources": [
       {
         "repository": "TavallStudios/tavall-di",
-        "sha": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
-        "role": "Tested merge tree; parents are PR #19 source 96b4afce1a94160db43e489a56f010bb64c9efde and staging/platform e68919729689affef8407bde07904722a2408bb3."
+        "sha": "1bee6d6222f19d81258274250eac8d9729c8e541",
+        "role": "Corrected code and regression tests. Integration ancestry is PR #19 source 96b4, current staging parent e689, integration merge 0a3 and prior evidence commit 36c8."
       },
       {
         "repository": "TavallStudios/tavall-logging",
@@ -45,21 +45,20 @@
     "results": {
       "compilation": "PASS",
       "unitTests": {
-        "tests": 97,
+        "tests": 98,
         "failures": 0,
         "errors": 0,
         "skipped": 0,
         "xmlFiles": 21,
-        "xmlAggregateSha256": "b7a60301baae0bc04d531049f76d8fcdf787e20fe62f7d62f9427f887074ccfa"
+        "xmlAggregateSha256": "2da66aa2fc8448927246c47b4cc2242559600c08739caf566bb8ffe035d6e125"
       },
       "focusedClass": {
         "name": "org.tavall.dependency.access.DependencyAccessSourceLowererTest",
-        "tests": 8,
+        "tests": 9,
         "failures": 0,
         "errors": 0,
         "skipped": 0,
-        "arrayDelegatesToRegression": "PASS",
-        "providedDependencyRegression": "PASS"
+        "newCodexRegression": "ignoresTypeDeclarationTextInCommentsAndAnnotationStrings"
       },
       "verifyJarContents": "PASS",
       "check": "PASS",
@@ -72,11 +71,20 @@
     },
     "jarArtifact": {
       "path": "build/libs/tavall-di-1.2.1.jar",
-      "sizeBytes": 132826,
-      "sha256": "8f297988bee6c9af2bc901aa52371a9413054e354bcfeea7ebf8ce237481ca08",
-      "published": false
+      "sizeBytes": 133780,
+      "sha256": "c878968c177dc02b268d2d3653a386a441eaeb6bf6e59426b69f30d13f02cbfa",
+      "publication": "not published; local build output only"
     },
-    "githubPackageCredentials": "GITHUB_TOKEN and GITHUB_ACTOR were unset; both private dependency coordinates resolved from the pinned source composites."
+    "githubPackageCredentials": "GITHUB_TOKEN and GITHUB_ACTOR were unset; both private dependency coordinates resolved from the pinned source composites.",
+    "reviewFinding": {
+      "id": 4305835422,
+      "priority": "P2",
+      "summary": "Type-like text inside annotation strings/comments was matched as a type declaration.",
+      "fixCommit": "1bee6d6222f19d81258274250eac8d9729c8e541",
+      "regression": "PASS",
+      "remoteThreadResolution": "PENDING_SOURCE_PUSH",
+      "freshCodexReview": "PENDING"
+    }
   },
   "pullRequestAtReport": {
     "state": "OPEN",
@@ -95,11 +103,30 @@
     "packageRelease": "NOT_PERFORMED",
     "runtimeAcceptance": "NOT_RUN",
     "deployment": "NOT_PERFORMED",
-    "mainPromotion": "NOT_PERFORMED"
+    "mainPromotion": "NOT_PERFORMED",
+    "freshCodexReview": "PENDING_ON_CORRECTED_REMOTE_HEAD"
   },
   "reviewEvidence": {
     "kind": "report",
     "media": "NOT_APPLICABLE",
-    "reason": "Backend source-lowering and regression tests have no visual behavior."
+    "reason": "Backend source-lowering and regression tests; the report records Codex P2 fix 1bee6d6. The old remote thread is pending reply/resolution and a fresh current-head Codex review."
+  },
+  "integrationLineage": {
+    "originalPr19Source": "96b4afce1a94160db43e489a56f010bb64c9efde",
+    "stagingParent": "e68919729689affef8407bde07904722a2408bb3",
+    "integrationMerge": "0a3b05993c4b4aef7a133ce4ef5f385c45927879",
+    "previousEvidenceCommit": "36c8a30a42faef4d1235bd55a90ffffe496c7bf0",
+    "correctedTestedSource": "1bee6d6222f19d81258274250eac8d9729c8e541"
+  },
+  "remotePrStateBeforeCorrectionPush": {
+    "state": "OPEN",
+    "draft": true,
+    "remoteHead": "36c8a30a42faef4d1235bd55a90ffffe496c7bf0",
+    "testedSource": "1bee6d6222f19d81258274250eac8d9729c8e541",
+    "base": "e68919729689affef8407bde07904722a2408bb3",
+    "mergeableBeforeFixPush": true,
+    "gitGuardianOnOldHead": "SUCCESS",
+    "githubActionsRuns": 0,
+    "combinedStatusContexts": []
   }
 }
