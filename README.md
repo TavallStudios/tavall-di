@@ -81,7 +81,7 @@ public final class PlayerRewardHandlerImpl
 `tavall-di/` (root Gradle project)
 - **Root Java source/build module** ← This Module — `src/main/java/`, `build.gradle.kts`
 
-Module Type: `LIBRARY`; Runtime Owner: `None`.
+Module Type: `SYSTEM`; Secondary Role: `LIBRARY`; Runtime Owner: consuming runtime.
 
 ## Documentation
 
@@ -90,13 +90,32 @@ Module Type: `LIBRARY`; Runtime Owner: `None`.
 | [Module Progression](docs/progression/TAVALL_DI_PROGRESSION.md) | Audited module implementation, integration, validation, and history. |
 | [Tavall DI System](docs/TAVALL_DI_SYSTEM_FINAL.md) | System ownership and contract. |
 | [DI Access Styles](docs/DI_ACCESS_STYLES.md) | Supported production and test access patterns. |
+| [Module Profiles](docs/module-profiles/README.md) | Per-deployment module profile architecture, identity boundaries, and resolution semantics. |
+| [Typed Identifiers & Profiles](docs/TYPED_IDENTIFIERS_AND_MODULE_PROFILES.md) | Extensible CustomEnum identifiers and profile contracts. |
 | [Contributing](CONTRIBUTING.md) | Contribution and development notes. |
+
+## Module Profiles and Deployment Composition
+
+Tavall DI provides `DeploymentModuleProfile`, `ModuleProfile`, and the interface-first `IModuleProfileResolver` (`ModuleProfileResolver`) to resolve per-deployment module composition and topological load ordering.
+
+### Identity Boundaries
+
+- **Artifact Identity:** Immutable bytes produced by CI (JAR digest / artifact coordinates).
+- **Deployment Identity:** Designated execution host or runtime target (`RuntimeTargetId`).
+- **Module Identity:** Functional capability identified by a canonical `CustomEnum` (`ModuleId`).
+- **Module Profile:** Desired composition (`DeploymentModuleProfile` / `ModuleProfile`), specifying schema version, configuration generation, explicitly enabled modules, and explicitly disabled modules.
+- **Runtime State:** Observed activation and lifecycle health within the runtime host (`tavall-registry`).
+
+> [!NOTE]
+> Profile resolution computes desired module composition and topological load order. It does not perform durable persistence, runtime host process supervision, or dynamic live module state transitions.
+
 
 ## Module Development
 
-- **Module Type:** `LIBRARY`
-- **Runtime Owner:** `None`
-- **Current PR Stack:** README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17); platform integration [#12](https://github.com/TavallStudios/tavall-di/pull/12) (draft to `main`); feature/architecture work [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#11](https://github.com/TavallStudios/tavall-di/pull/11), [#14](https://github.com/TavallStudios/tavall-di/pull/14), and CI localization [#13](https://github.com/TavallStudios/tavall-di/pull/13) remain unmerged against `staging/platform`.
+- **Module Type:** `SYSTEM`
+- **Secondary Role:** `LIBRARY`
+- **Runtime Owner:** Consuming runtime modules own composition; `tavall-di` has no independent executable runtime.
+- **Current PR Stack:** Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) targets `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. Other sibling work remains on its existing PR branches.
 - **Module-local CI Definition:** Missing from current `main`: `.tavallci/ci.yaml` (required for a Tavall source/build module). This documentation PR records the gap and does not change CI configuration.
 
 ## Requirements / Compatibility
@@ -138,3 +157,11 @@ No tracked license file is present in the current repository tree.
 | 2026-09-27 5:33 PM PDT | GitHub | UPDATED | TavallStudios/tavall-di/README.md | Same path | PR [#17](https://github.com/TavallStudios/tavall-di/pull/17) | Corrected the Documentation table row order; also corrected PR stack punctuation. |
 
 </details>
+
+## Generation ownership
+
+See [Generation-owned dependency access](docs/GENERATION_OWNED_DEPENDENCY_ACCESS.md) for managed registration, aliases, parent references and stale-reference rejection. Root CI is [`.tavallci/ci.yaml`](.tavallci/ci.yaml). This module is a `SYSTEM` with a secondary `LIBRARY` role, composed by its consuming runtime; it owns no independent process.
+
+## Provided dependencies
+
+Third-party factories implement `IDependencyFactory<T>.create()` and use the existing typed `DependencyAccess` and named getters for inputs. Consumers use the same pattern. See [Provided dependencies](docs/PROVIDED_DEPENDENCIES.md) for the factory/consumer example, generated access, bootstrap ordering and scoped lifecycle contract.
