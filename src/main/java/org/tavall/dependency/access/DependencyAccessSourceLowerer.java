@@ -78,7 +78,8 @@ public final class DependencyAccessSourceLowerer {
         }
 
         String normalizedSource = normalizeLineEndings(source);
-        Matcher classMatcher = CLASS_PATTERN.matcher(normalizedSource);
+        String maskedSource = maskCommentsAndLiterals(normalizedSource);
+        Matcher classMatcher = CLASS_PATTERN.matcher(maskedSource);
         if (!classMatcher.find()) {
             return new LoweredSource(source, List.of());
         }
@@ -117,7 +118,7 @@ public final class DependencyAccessSourceLowerer {
             }
             foundDependencyAccess = true;
 
-            if (!hasManagedDeclaration(normalizedSource, classKeywordIndex)) {
+            if (!hasManagedDeclaration(maskedSource, classKeywordIndex)) {
                 throw new IllegalArgumentException(
                         "DependencyAccess requires @DelegatesTo or @ProvidedDependency on " + className);
             }
@@ -147,8 +148,8 @@ public final class DependencyAccessSourceLowerer {
         return new LoweredSource(rewrittenSource, List.copyOf(generatedSources));
     }
 
-    private boolean hasManagedDeclaration(String source, int classKeywordIndex) {
-        String declarationPrefix = maskCommentsAndLiterals(source.substring(0, classKeywordIndex));
+    private boolean hasManagedDeclaration(String maskedSource, int classKeywordIndex) {
+        String declarationPrefix = maskedSource.substring(0, classKeywordIndex);
         int annotationStart = Math.max(
                 Math.max(
                         declarationPrefix.lastIndexOf("@DelegatesTo"),
