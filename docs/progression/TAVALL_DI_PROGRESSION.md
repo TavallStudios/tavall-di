@@ -11,7 +11,7 @@
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
 > **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-10-17 8:03 PM PDT`
+> **Last Reconciled:** `2026-10-17 8:05 PM PDT`
 
 ## About
 
@@ -103,14 +103,15 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 8:03 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; current local and hosted boundaries in [the 2026-10-18 results report](evidence/2026-10-18-provided-dependencies/results.json). |
-| Notion | `TEMPORARY_DRIFT` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 8:03 PM PDT | Final 1:1 Notion update and post-fetch verification are pending this report commit. |
+| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 8:05 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; report artifact commit `cbc65ecfd04a8459b2dcc8a4c53cd6f574bec6fd`; hosted boundary in [the 2026-10-18 results report](evidence/2026-10-18-provided-dependencies/results.json). |
+| Notion | `SYNCED` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 8:05 PM PDT | Post-fetch verified the module classification, runtime ownership, current PR stack, 96-test report, and hosted CI blocker. |
 
 ### Update History
 
 | Timestamp | Surface | Event | Location | Previous Location | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-09-27 5:30 PM PDT | GitHub | `CREATED` | `docs/progression/TAVALL_DI_PROGRESSION.md` | — | PR [#17](https://github.com/TavallStudios/tavall-di/pull/17) at the current documentation branch; audited baseline `d8ecc02302522e3acecc586c3f9e918007c82ca3` | Created module-scoped Progression from GitHub source, build, history, and documentation evidence. |
+| 2026-10-17 8:05 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-09-27 5:30 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; report artifact commit `cbc65ecfd04a8459b2dcc8a4c53cd6f574bec6fd`; 96 local tests; hosted request `38dd54fc-f37d-4ea2-953a-c9c6982f34af` rejected before source execution; post-fetch verified | Corrected classification/runtime ownership and PR stack, added immutable local-results report, and recorded separate hosted and staging acceptance boundaries. |
 
 </details>
 
