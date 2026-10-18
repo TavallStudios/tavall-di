@@ -148,7 +148,7 @@ public final class DependencyAccessSourceLowerer {
     }
 
     private boolean hasManagedDeclaration(String source, int classKeywordIndex) {
-        String declarationPrefix = source.substring(0, classKeywordIndex);
+        String declarationPrefix = maskCommentsAndLiterals(source.substring(0, classKeywordIndex));
         int annotationStart = Math.max(
                 Math.max(
                         declarationPrefix.lastIndexOf("@DelegatesTo"),
@@ -161,6 +161,96 @@ public final class DependencyAccessSourceLowerer {
         }
         String annotationAndDeclaration = declarationPrefix.substring(annotationStart);
         return !TYPE_DECLARATION_PATTERN.matcher(annotationAndDeclaration).find();
+    }
+
+    private String maskCommentsAndLiterals(String source) {
+        StringBuilder maskedSource = new StringBuilder(source);
+        int index = 0;
+        while (index < source.length()) {
+            char current = source.charAt(index);
+            if (current == '/' && index + 1 < source.length()) {
+                char next = source.charAt(index + 1);
+                if (next == '/') {
+                    int end = index + 2;
+                    while (end < source.length()
+                            && source.charAt(end) != '\n'
+                            && source.charAt(end) != '\r') {
+                        end++;
+                    }
+                    maskRange(maskedSource, index, end);
+                    index = end;
+                    continue;
+                }
+                if (next == '*') {
+                    int closingIndex = source.indexOf("*/", index + 2);
+                    int end = closingIndex < 0 ? source.length() : closingIndex + 2;
+                    maskRange(maskedSource, index, end);
+                    index = end;
+                    continue;
+                }
+            }
+            if (current == '"' && source.startsWith("\"\"\"", index)) {
+                int end = findTextBlockEnd(source, index);
+                maskRange(maskedSource, index, end);
+                index = end;
+                continue;
+            }
+            if (current == '"' || current == '\'') {
+                int end = findQuotedLiteralEnd(source, index, current);
+                maskRange(maskedSource, index, end);
+                index = end;
+                continue;
+            }
+            index++;
+        }
+        return maskedSource.toString();
+    }
+
+    private int findTextBlockEnd(String source, int startIndex) {
+        int index = startIndex + 3;
+        while (index < source.length()) {
+            char current = source.charAt(index);
+            if (current == '\\') {
+                index = index + 1 < source.length() ? index + 2 : index + 1;
+                continue;
+            }
+            if (current == '"'
+                    && index + 2 < source.length()
+                    && source.charAt(index + 1) == '"'
+                    && source.charAt(index + 2) == '"') {
+                return index + 3;
+            }
+            index++;
+        }
+        return source.length();
+    }
+
+    private int findQuotedLiteralEnd(String source, int startIndex, char quote) {
+        int index = startIndex + 1;
+        while (index < source.length()) {
+            char current = source.charAt(index);
+            if (current == '\\') {
+                index = index + 1 < source.length() ? index + 2 : index + 1;
+                continue;
+            }
+            if (current == quote) {
+                return index + 1;
+            }
+            if (current == '\n' || current == '\r') {
+                return index;
+            }
+            index++;
+        }
+        return source.length();
+    }
+
+    private void maskRange(StringBuilder source, int startIndex, int endIndex) {
+        for (int index = startIndex; index < endIndex; index++) {
+            char current = source.charAt(index);
+            if (current != '\n' && current != '\r') {
+                source.setCharAt(index, ' ');
+            }
+        }
     }
 
     private boolean isDependencyAccessSegment(String segment) {
