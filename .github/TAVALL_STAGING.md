@@ -19,3 +19,7 @@ DI feature #20 and staging #12 reached main at `86de4c75a6b09c5922ef60a2fb06111c
 ## Validated 1.2.0 promotion (2026-10-15)
 
 Children #11 (typed module identities and effective profiles) and #23 (retired-generation resurrection fence) were integrated and promoted through staging #21 to main at `fb985397d75bcc6c4490b972746ce10b6b405c68` as **Tavall DI 1.2.0** (RELEASE). Exact-source CI passed on #11 `a8505d9d`, #23 `f6e1b8dc`, the staging head `f85b42f3` and main; all produced the same 1.2.0 artifact digest `6ef820e5eae5db057143388bc3d5f33fad65a0ebfc20e9c40e82d1a66018e440`. Unreleased branches use the canonical `0.<iteration>.<sub>-SNAPSHOT` versions. The same `staging/platform` branch continues for active children #10, #13, #14 and #19; their sources are preserved and not declared accepted.
+
+## Validated 1.2.1 promotion (2026-10-15)
+
+Child #25 (close the `ModuleProfileResolver` Javadoc paragraph; add `javadoc` to the CI quality check) was integrated and promoted through staging #24 to main at `c6ecaee3027e5e42f6a0fb11a40700925968498f` as **Tavall DI 1.2.1** (RELEASE). DI 1.2.0 could not be consumed as an exact source because consumer CI publishes DI as a source module, which runs `javadoc`. Exact-source CI passed on #25 `e7c3ef5a`, the staging head `dbcfc089` and main `f8efcc3d`; artifact digest `3a3440a03e8aaa80f28394ca63e0b283b13ee19d1bbe4b081ae4ef299f22b83c`. The same `staging/platform` branch continues for active children #10, #13, #14 and #19; their sources are preserved and not declared accepted.

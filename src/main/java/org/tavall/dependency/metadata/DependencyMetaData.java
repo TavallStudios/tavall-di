@@ -33,6 +33,7 @@ import java.util.function.Supplier;
  */
 public class DependencyMetaData<INTERFACE, INSTANCE>
         implements IDependencyMetaData<INTERFACE, INSTANCE> {
+    private final org.tavall.dependency.maps.interfaces.IDependencyMap dependencyMap;
     private Set<INTERFACE> subDependencies = new HashSet<>();
     private int priority;
     private int depth;
@@ -49,7 +50,18 @@ public class DependencyMetaData<INTERFACE, INSTANCE>
     private INSTANCE dependencyInstance;
 
     public DependencyMetaData() {
+        this(org.tavall.dependency.maps.DependencyMap.getDependencyMap());
+    }
+
+    /** Infrastructure binds metadata to its authoritative map; borrowed metadata retains its owner. */
+    public DependencyMetaData(org.tavall.dependency.maps.interfaces.IDependencyMap dependencyMap) {
+        this.dependencyMap = java.util.Objects.requireNonNull(dependencyMap, "dependencyMap");
         resolveTypesFromSubclass();
+    }
+
+    @Override
+    public org.tavall.dependency.maps.interfaces.IDependencyMap getDependencyMap() {
+        return dependencyMap;
     }
 
     private void resolveTypesFromSubclass() {
@@ -156,6 +168,9 @@ public class DependencyMetaData<INTERFACE, INSTANCE>
                     exception);
         }
     }
+
+    /** Construction strategy retained by metadata, used by bootstrap repair/rollback. */
+    public Supplier<INSTANCE> getDependencySupplier() { return dependencySupplier; }
 
     public void setDependencySupplier(Supplier<INSTANCE> supplier) {
         dependencySupplier = supplier;

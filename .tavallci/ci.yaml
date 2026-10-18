@@ -30,7 +30,7 @@ checks:
   artifact:
     executor: gradle
     tasks:
-      - jar
+      - tavallCiArtifact
 dependencies:
   - kind: source
     identity: TavallStudios/tavall-logging
@@ -55,5 +55,5 @@ dependencies:
     digest: c945956c42d0e49f28ec925d62956d94668c0b3fab0293d9dd2db028b26d9cd2
 artifacts:
   - name: tavall-di
-    path: build/libs/tavall-di-1.2.1.jar
+    path: build/tavall-ci-artifacts/tavall-di.jar
     channel: RELEASE

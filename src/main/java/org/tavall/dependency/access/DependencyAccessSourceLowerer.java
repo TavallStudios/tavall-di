@@ -30,6 +30,8 @@ public final class DependencyAccessSourceLowerer {
     private static final Pattern PACKAGE_PATTERN = Pattern.compile("(?m)^\\s*package\\s+([\\w.]+)\\s*;");
     private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+[^;]+;");
     private static final Pattern CLASS_PATTERN = Pattern.compile("\\bclass\\s+([A-Za-z_$][A-Za-z0-9_$]*)");
+    private static final Pattern TYPE_DECLARATION_PATTERN = Pattern.compile(
+            "\\b(?:class|interface|enum|record)\\s+[A-Za-z_$][A-Za-z0-9_$]*");
 
     /**
      * Lowers all source files and adds generated access sources to the returned map.
@@ -76,7 +78,8 @@ public final class DependencyAccessSourceLowerer {
         }
 
         String normalizedSource = normalizeLineEndings(source);
-        Matcher classMatcher = CLASS_PATTERN.matcher(normalizedSource);
+        String maskedSource = maskCommentsAndLiterals(normalizedSource);
+        Matcher classMatcher = CLASS_PATTERN.matcher(maskedSource);
         if (!classMatcher.find()) {
             return new LoweredSource(source, List.of());
         }
@@ -115,9 +118,9 @@ public final class DependencyAccessSourceLowerer {
             }
             foundDependencyAccess = true;
 
-            if (!hasDelegatesToAnnotation(normalizedSource, classKeywordIndex)) {
+            if (!hasManagedDeclaration(maskedSource, classKeywordIndex)) {
                 throw new IllegalArgumentException(
-                        "DependencyAccess requires @DelegatesTo on " + className);
+                        "DependencyAccess requires @DelegatesTo or @ProvidedDependency on " + className);
             }
 
             ParsedAccess parsedAccess = parseDependencyAccess(segment, classTypeParameters);
@@ -145,14 +148,110 @@ public final class DependencyAccessSourceLowerer {
         return new LoweredSource(rewrittenSource, List.copyOf(generatedSources));
     }
 
-    private boolean hasDelegatesToAnnotation(String source, int classKeywordIndex) {
-        String declarationPrefix = source.substring(0, classKeywordIndex);
-        int previousTypeEnd = Math.max(
-                declarationPrefix.lastIndexOf('}'),
-                declarationPrefix.lastIndexOf(';'));
-        String localPrefix = declarationPrefix.substring(Math.max(0, previousTypeEnd + 1));
-        return localPrefix.contains("@DelegatesTo")
-                || localPrefix.contains("@org.tavall.dependency.annotations.DelegatesTo");
+    private boolean hasManagedDeclaration(String maskedSource, int classKeywordIndex) {
+        String declarationPrefix = maskedSource.substring(0, classKeywordIndex);
+        int annotationStart = Math.max(
+                Math.max(
+                        declarationPrefix.lastIndexOf("@DelegatesTo"),
+                        declarationPrefix.lastIndexOf("@org.tavall.dependency.annotations.DelegatesTo")),
+                Math.max(
+                        declarationPrefix.lastIndexOf("@ProvidedDependency"),
+                        declarationPrefix.lastIndexOf("@org.tavall.dependency.annotations.ProvidedDependency")));
+        if (annotationStart < 0) {
+            return false;
+        }
+        String annotationAndDeclaration = declarationPrefix.substring(annotationStart);
+        return !TYPE_DECLARATION_PATTERN.matcher(annotationAndDeclaration).find();
+    }
+
+    private String maskCommentsAndLiterals(String source) {
+        StringBuilder maskedSource = new StringBuilder(source);
+        int index = 0;
+        while (index < source.length()) {
+            char current = source.charAt(index);
+            if (current == '/' && index + 1 < source.length()) {
+                char next = source.charAt(index + 1);
+                if (next == '/') {
+                    int end = index + 2;
+                    while (end < source.length()
+                            && source.charAt(end) != '\n'
+                            && source.charAt(end) != '\r') {
+                        end++;
+                    }
+                    maskRange(maskedSource, index, end);
+                    index = end;
+                    continue;
+                }
+                if (next == '*') {
+                    int closingIndex = source.indexOf("*/", index + 2);
+                    int end = closingIndex < 0 ? source.length() : closingIndex + 2;
+                    maskRange(maskedSource, index, end);
+                    index = end;
+                    continue;
+                }
+            }
+            if (current == '"' && source.startsWith("\"\"\"", index)) {
+                int end = findTextBlockEnd(source, index);
+                maskRange(maskedSource, index, end);
+                index = end;
+                continue;
+            }
+            if (current == '"' || current == '\'') {
+                int end = findQuotedLiteralEnd(source, index, current);
+                maskRange(maskedSource, index, end);
+                index = end;
+                continue;
+            }
+            index++;
+        }
+        return maskedSource.toString();
+    }
+
+    private int findTextBlockEnd(String source, int startIndex) {
+        int index = startIndex + 3;
+        while (index < source.length()) {
+            char current = source.charAt(index);
+            if (current == '\\') {
+                index = index + 1 < source.length() ? index + 2 : index + 1;
+                continue;
+            }
+            if (current == '"'
+                    && index + 2 < source.length()
+                    && source.charAt(index + 1) == '"'
+                    && source.charAt(index + 2) == '"') {
+                return index + 3;
+            }
+            index++;
+        }
+        return source.length();
+    }
+
+    private int findQuotedLiteralEnd(String source, int startIndex, char quote) {
+        int index = startIndex + 1;
+        while (index < source.length()) {
+            char current = source.charAt(index);
+            if (current == '\\') {
+                index = index + 1 < source.length() ? index + 2 : index + 1;
+                continue;
+            }
+            if (current == quote) {
+                return index + 1;
+            }
+            if (current == '\n' || current == '\r') {
+                return index;
+            }
+            index++;
+        }
+        return source.length();
+    }
+
+    private void maskRange(StringBuilder source, int startIndex, int endIndex) {
+        for (int index = startIndex; index < endIndex; index++) {
+            char current = source.charAt(index);
+            if (current != '\n' && current != '\r') {
+                source.setCharAt(index, ' ');
+            }
+        }
     }
 
     private boolean isDependencyAccessSegment(String segment) {
@@ -235,6 +334,9 @@ public final class DependencyAccessSourceLowerer {
         }
 
         source.append("/* Generated by DependencyAccessSourceLowerer. */\n");
+        source.append("@org.tavall.dependency.annotations.CompositionBoundary(\"")
+                .append(DependencyAccessSourceLowerer.class.getName())
+                .append("\")\n");
         source.append("@org.tavall.dependency.annotations.DelegatesTo\n");
         source.append("public final class ").append(generatedSimpleName)
                 .append(" implements org.tavall.dependency.IDependencyAccess {\n")
