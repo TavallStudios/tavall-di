@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.Copy
 import java.util.zip.ZipFile
 
 plugins {
@@ -16,34 +17,10 @@ java {
 }
 
 repositories {
-    mavenLocal()
-    val localSnapshots = file("/srv/dev-storage/deps/private/snapshots")
-    if (localSnapshots.isDirectory) {
-        maven(localSnapshots)
-    }
-    mavenCentral()
-    val githubToken = providers.environmentVariable("GITHUB_TOKEN").orNull
-    if (!githubToken.isNullOrBlank()) {
-        listOf(
-            "tavall-cloud",
-            "tavall-logging",
-            "tavall-concurrency",
-            "tavall-reflection",
-            "tavall-di",
-            "tavall-custom-enum-java",
-            "tavall-eventbus",
-            "tavall-cache",
-            "tavall-database",
-            "tavall-registry",
-            "tavall-scheduler",
-        ).forEach { repository ->
-            maven("https://maven.pkg.github.com/TavallStudios/$repository") {
-                name = "github${repository.replace("-", "")}"
-                credentials {
-                    username = providers.environmentVariable("GITHUB_ACTOR").orElse("github").get()
-                    password = githubToken
-                }
-            }
+    mavenCentral {
+        content {
+            excludeGroupByRegex("org\\.tavall(?:\\..*)?")
+            excludeGroupByRegex("com\\.tavall(?:\\..*)?")
         }
     }
 }
@@ -96,12 +73,9 @@ publishing {
         }
     }
     repositories {
-        val localSnapshots = file("/srv/dev-storage/deps/private/snapshots")
-        if (localSnapshots.isDirectory) {
-            maven {
-                name = "localSnapshots"
-                url = uri(localSnapshots)
-            }
+        val exactSourceRepository = providers.gradleProperty("tavallPublishRepository").orNull
+        if (!exactSourceRepository.isNullOrBlank()) {
+            maven { name = "TavallExactSource"; url = uri(exactSourceRepository) }
         }
         val token = providers.environmentVariable("GITHUB_TOKEN")
         if (token.isPresent) {
@@ -117,11 +91,10 @@ publishing {
     }
 }
 
-publishing {
-    repositories {
-        val exactSourceRepository = providers.gradleProperty("tavallPublishRepository").orNull
-        if (!exactSourceRepository.isNullOrBlank()) {
-            maven { name = "TavallExactSource"; url = uri(exactSourceRepository) }
-        }
-    }
+tasks.register<Copy>("tavallCiArtifact") {
+    val binaryJar = tasks.named<Jar>("jar")
+    dependsOn(binaryJar)
+    from(binaryJar.flatMap { it.archiveFile })
+    into(layout.buildDirectory.dir("tavall-ci-artifacts"))
+    rename { "tavall-di.jar" }
 }

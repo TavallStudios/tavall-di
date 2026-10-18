@@ -11,7 +11,7 @@
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
 > **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-10-17 10:50 PM PDT`
+> **Last Reconciled:** `2026-10-17 11:08 PM PDT`
 
 ## About
 
@@ -28,7 +28,7 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | Owning System | `tavall-di` |
 | Runtime Owner | Consuming runtime modules own composition; `tavall-di` has no independent executable runtime |
 | Primary Consumers | Not established by this module-focused audit |
-| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17) merged to `main` on 2026-09-28. Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) and DelegatesTo array-lowering fix [#19](https://github.com/TavallStudios/tavall-di/pull/19) merged into `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. |
+| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17) merged to `main` on 2026-09-28. PRs [#10](https://github.com/TavallStudios/tavall-di/pull/10) and [#19](https://github.com/TavallStudios/tavall-di/pull/19) merged into `staging/platform`. CI migration PR #13 is reconciled to the current staging head but remains Draft pending Tavall CI execution; architecture PR #14 remains deferred. Staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. |
 | Audited Revision | [`d8ecc02302522e3acecc586c3f9e918007c82ca3`](https://github.com/TavallStudios/tavall-di/commit/d8ecc02302522e3acecc586c3f9e918007c82ca3) on `main` |
 
 ## Current Status
@@ -103,8 +103,8 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 10:50 PM PDT | PR #19 merged into `staging/platform` at `8a9b90145daad94331e1ee7a6af3a1cecc9a75a9`; tested code source `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d`; [DI PR #19 results](evidence/2026-10-18-delegates-to-array-lowerer/results.json). |
-| Notion | `SYNCED` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:50 PM PDT | Post-fetch verified PR #19's staging merge, exact test report and remaining hosted/staging/package/runtime boundaries. |
+| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 11:08 PM PDT | PR #19 merged at `8a9b90145daad94331e1ee7a6af3a1cecc9a75a9`; PR #13 source `8160c7dc828899a593947d7744492548b3a989a5` passes 98 local exact-source tests; [PR #13 results](evidence/2026-10-18-di-pr13-ci-migration/results.json). |
+| Notion | `SYNCED` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 11:08 PM PDT | Post-fetch verified PR #13 local tests, exact dependency pins, and the unavailable hosted/Bot execution boundary. |
 
 ### Update History
 
@@ -116,6 +116,7 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 | 2026-10-17 10:23 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:08 PM PDT | Codex P2 comment `4305835422`; tested code source `1bee6d6222f19d81258274250eac8d9729c8e541`; 98 local tests; [corrected results report](evidence/2026-10-18-delegates-to-array-lowerer/results.json); post-fetch verified | Masked annotation strings/comments for type-boundary detection, added focused regression coverage, and kept the pending remote review/hosted boundaries explicit. |
 | 2026-10-17 10:36 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:23 PM PDT | Tavall PR Review Agent ROLE finding/fix `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d`; 98 exact-source tests; [current results report](evidence/2026-10-18-delegates-to-array-lowerer/results.json); post-fetch verified | Masked comment/string class tokens before declaration matching; recorded that the dedicated GitHub Bot review provider is unavailable and kept hosted/staging gates separate. |
 | 2026-10-17 10:50 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:36 PM PDT | PR #19 merge commit `8a9b90145daad94331e1ee7a6af3a1cecc9a75a9`; tested source `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d`; [verified results report](evidence/2026-10-18-delegates-to-array-lowerer/results.json); post-fetch verified | Recorded child integration into persistent staging while keeping hosted exact-source CI, composed staging, package, runtime and deployment acceptance separate. |
+| 2026-10-17 11:08 PM PDT | GitHub + Notion | `UPDATED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 10:50 PM PDT | PR #13 current source `8160c7dc828899a593947d7744492548b3a989a5`; 98 local exact-source tests; direct TCI request rejected before source execution for missing CONTROL environment context; [PR #13 results](evidence/2026-10-18-di-pr13-ci-migration/results.json); post-fetch verified | Reconciled current staging dependencies/checks and documented the difference between local source validation, unavailable Bot/TCI execution, and package/runtime acceptance. |
 
 </details>
 
@@ -188,3 +189,11 @@ The original P2 thread is replied to and resolved. The installed PR Review Agent
 The exact tested code source `e2d97a59d0fef95bc320b9e9f5b26276e44dd14d` passes Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar` with the pinned Logging and Custom Enum source composites: 98 tests, zero failures/errors/skips, all 9 lowerer cases, and `verifyJarContents`. Javadoc has 100 missing-comment warnings. The local-only JAR SHA-256 is `7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9`. [The verified exact-source report](evidence/2026-10-18-delegates-to-array-lowerer/results.json) separates tested source from evidence/current head.
 
 The GitHub Bot review provider is not deployed or configured in the connected installation; the installed Tavall PR Review Agent ROLE was used and its findings were fixed. No new Codex review was requested on the corrected source. GitHub returned no status contexts or Actions runs on the evidence head; hosted exact-source CI and composed staging validation remain unrun. No package release, runtime acceptance, deployment, or main promotion was performed.
+
+## 2026-10-18 — PR #13 CI migration reconciled to current staging
+
+CI migration PR #13 retains its existing branch and adds current `staging/platform` at `4b7522852b5d87918e6b7faa726ec86128d43870` as a merge parent. The resolved `.tavallci/ci.yaml` preserves current exact Logging and Custom Enum source pins, the shared Maven mirror, four required checks, and the PR's `tavallCiArtifact` output. The merged Gradle configuration removes `mavenLocal()`, the host-private dependency repository, and internal GitHub Packages dependency resolution while preserving current DI version semantics and optional explicit publishing configuration.
+
+Updated PR source `8160c7dc828899a593947d7744492548b3a989a5` passes Java 25.0.1 / Gradle 9.6.1 `clean check assemble javadoc tavallCiArtifact` with exact Logging `e047172ab7c2be005baf0b2c4b46e230ead78417` and Custom Enum Java `2284168910f755a0d13a68fbc821cedc14d0a49b` composites: 98 tests, zero failures/errors/skips, and both the standard JAR and `tavallCiArtifact` output have SHA-256 `7a0b3d0eb2687330c5e49c7a0eed76f5c050fb037f78d3008d66147aeeca55b9`. Javadoc completed with 100 missing-comment warnings. [The local results report](evidence/2026-10-18-di-pr13-ci-migration/results.json) separates this pass from hosted acceptance.
+
+The direct Tavall CI CLI request for exact head `8160c7dc828899a593947d7744492548b3a989a5` returned typed `UNAUTHORIZED: environment repository execution requires CONTROL environment context` before source execution. The Tavall AI integration-test tool also stopped at `compileJava` because its workspace did not materialize the pinned internal dependencies; exact-source local Gradle composites passed separately. The dedicated GitHub Bot runtime is not deployed, and GitHub returned no status contexts or Actions runs on the current head. PR #13 remains Draft and unmerged until the authorized Bot/CONTROL CI path can record exact-head evidence. No package publication or runtime/deployment action was performed.
