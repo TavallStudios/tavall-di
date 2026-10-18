@@ -9,6 +9,7 @@
 
 package org.tavall.dependency.maps;
 
+import org.tavall.dependency.IDependencyFactory;
 import org.tavall.dependency.maps.interfaces.IDependencyMap;
 import org.tavall.dependency.metadata.DependencyMetaData;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
@@ -17,8 +18,10 @@ import org.tavall.dependency.metadata.wrappers.DependencyInterface;
 import org.tavall.logging.Log;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -46,11 +49,14 @@ public class DependencyMap
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public <T> T registerInstance(Class<T> dependencyType, T dependencyInstance) {
+    public synchronized <T> T registerInstance(Class<T> dependencyType, T dependencyInstance) {
         validateRegistration(dependencyType, dependencyInstance);
+        if (dependencyInstance instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned) {
+            return registerGenerationOwned(dependencyType, dependencyInstance, owned, () -> dependencyInstance);
+        }
 
         Class concreteType = dependencyInstance.getClass();
-        DependencyMetaData metaData = new DependencyMetaData();
+        DependencyMetaData metaData = new DependencyMetaData(this);
         metaData.bindDependencyInstance(
                 dependencyType,
                 concreteType,
@@ -64,7 +70,7 @@ public class DependencyMap
     }
 
     @Override
-    public <T> T registerInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
+    public synchronized <T> T registerInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
         if (dependencyType == null) {
             throw new IllegalArgumentException("[DependencyMap] dependency key is required");
         }
@@ -77,13 +83,136 @@ public class DependencyMap
         return registerSuppliedInstance(dependencyType, instance, supplier);
     }
 
+    @Override
+    public synchronized <T> T registerFactory(Class<T> dependencyType,
+            IDependencyFactory<? extends T> dependencyFactory, Class<?>... aliases) {
+        return registerFactoryWithInitialization(dependencyType, dependencyFactory, instance -> { }, aliases);
+    }
+
+    /** Bootstrap infrastructure resolves produced-object prerequisites before its lifecycle runs. */
+    public synchronized <T> T registerFactoryWithInitialization(Class<T> dependencyType,
+            IDependencyFactory<? extends T> dependencyFactory,
+            java.util.function.Consumer<? super T> beforeInitialization, Class<?>... aliases) {
+        if (dependencyType == null || dependencyFactory == null || beforeInitialization == null) {
+            throw new IllegalArgumentException("[DependencyMap] dependency token, factory and initializer are required");
+        }
+        IDependencyMetaData<?, ?> previousFactory = findMetaData(dependencyFactory.getClass());
+        try {
+            bindFactoryAccess(dependencyFactory);
+            T instance = dependencyFactory.create();
+            validateRegistration(dependencyType, instance);
+            Set<Class<?>> dependencyTypes = new LinkedHashSet<>();
+            dependencyTypes.add(dependencyType);
+            if (aliases != null) {
+                for (Class<?> alias : aliases) {
+                    if (alias == null || alias == Void.class) continue;
+                    if (!alias.isInstance(instance)) {
+                        throw new IllegalArgumentException("[DependencyMap] dependency instance must satisfy alias " + alias.getName());
+                    }
+                    dependencyTypes.add(alias);
+                }
+            }
+            return registerFactoryInstance(dependencyType, instance, dependencyFactory, dependencyTypes, beforeInitialization);
+        } catch (RuntimeException | Error failure) {
+            IDependencyMetaData<?, ?> currentFactory = findMetaData(dependencyFactory.getClass());
+            if (previousFactory == null && currentFactory != null && currentFactory.getDependencyInstance() == dependencyFactory) {
+                try { removeDependency(dependencyFactory.getClass()); }
+                catch (RuntimeException | Error cleanup) { failure.addSuppressed(cleanup); }
+            }
+            throw failure;
+        }
+    }
+
+    /** Binds scoped factory inputs through the same existing generation lifecycle as consumers. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean bindFactoryAccess(IDependencyFactory<?> factory) {
+        if (factory instanceof org.tavall.dependency.IDependencyAccess access
+                && !(factory instanceof org.tavall.dependency.GenerationOwnedDependencyAccess)
+                && access.getDependencyMap() != this) {
+            throw new IllegalArgumentException("Typed factory must use the owning map; scoped factories extend GenerationOwnedDependencyAccess");
+        }
+        // Pure construction instructions stay in product metadata; only actual DI/lifecycle ownership needs a factory binding.
+        if (!requiresFactoryLifecycle(factory)) return false;
+        IDependencyMetaData<?, ?> existing = findMetaData(factory.getClass());
+        if (existing != null) {
+            if (existing.getDependencyInstance() == factory) return false;
+            throw new IllegalStateException("Factory class is already registered; unload it before replacement: " + factory.getClass().getName());
+        }
+        registerInstance((Class) factory.getClass(), factory);
+        return true;
+    }
+
+    private boolean requiresFactoryLifecycle(IDependencyFactory<?> factory) {
+        Class<?> type = factory.getClass();
+        boolean injected = hasInjectedFactoryFields(type);
+        if (injected || factory instanceof org.tavall.dependency.GenerationOwnedDependencyAccess
+                || type.isAnnotationPresent(org.tavall.dependency.annotations.ProvidedDependency.class)) return true;
+        for (org.tavall.dependency.injection.enums.LifecycleType lifecycle : org.tavall.dependency.injection.enums.LifecycleType.values()) {
+            if (!lifecycle.findAllIn(type).isEmpty()) return true;
+        }
+        return false;
+    }
+
+    private boolean hasInjectedFactoryFields(Class<?> type) {
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (java.lang.reflect.Field field : current.getDeclaredFields()) {
+                if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())
+                        && field.isAnnotationPresent(org.tavall.dependency.annotations.Inject.class)) return true;
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private <T> T registerFactoryInstance(
+            Class<T> dependencyType,
+            T instance,
+            IDependencyFactory<? extends T> dependencyFactory,
+            Set<Class<?>> dependencyTypes,
+            java.util.function.Consumer<? super T> beforeInitialization) {
+        if (instance instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned) {
+            return registerGenerationOwned(dependencyType, instance, owned, dependencyFactory::create,
+                    dependencyTypes, beforeInitialization);
+        }
+        Class concreteType = instance.getClass();
+        DependencyMetaData metaData = new DependencyMetaData(this);
+        metaData.bindDependencyInstance(
+                dependencyType,
+                concreteType,
+                new DependencyInterface(dependencyType),
+                new DependencyInstance(concreteType),
+                instance,
+                dependencyFactory::create);
+
+        Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>();
+        for (Class<?> exposedType : dependencyTypes) {
+            IDependencyMetaData<?, ?> displaced = put(exposedType, metaData);
+            if (displaced != null) previous.put(exposedType, displaced);
+        }
+        try {
+            beforeInitialization.accept(instance);
+            metaData.initializeDependencyInstance();
+            return dependencyType.cast(instance);
+        } catch (RuntimeException | Error failure) {
+            for (Class<?> token : dependencyTypes) {
+                IDependencyMetaData<?, ?> displaced = previous.get(token);
+                if (displaced == null) super.remove(token, metaData);
+                else super.replace(token, metaData, displaced);
+            }
+            throw failure;
+        }
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> T registerSuppliedInstance(
             Class<T> dependencyType,
             T instance,
             Supplier<? extends T> supplier) {
+        if (instance instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned) {
+            return registerGenerationOwned(dependencyType, instance, owned, supplier);
+        }
         Class concreteType = instance.getClass();
-        DependencyMetaData metaData = new DependencyMetaData();
+        DependencyMetaData metaData = new DependencyMetaData(this);
         metaData.bindDependencyInstance(
                 dependencyType,
                 concreteType,
@@ -94,6 +223,87 @@ public class DependencyMap
         registerDependency(dependencyType, metaData);
         metaData.initializeDependencyInstance();
         return dependencyType.cast(instance);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private <T> T registerGenerationOwned(Class<T> dependencyType, T instance,
+            org.tavall.dependency.GenerationOwnedDependencyAccess owned, Supplier<? extends T> supplier) {
+        return registerGenerationOwned(dependencyType, instance, owned, supplier, Set.of(), value -> { });
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private <T> T registerGenerationOwned(Class<T> dependencyType, T instance,
+            org.tavall.dependency.GenerationOwnedDependencyAccess owned, Supplier<? extends T> supplier,
+            Set<Class<?>> aliases, java.util.function.Consumer<? super T> beforeInitialization) {
+        java.util.Set<Class<?>> tokens = new java.util.LinkedHashSet<>();
+        tokens.add(dependencyType);
+        tokens.add(instance.getClass());
+        tokens.addAll(aliases);
+        org.tavall.dependency.annotations.DelegatesTo declaration =
+                instance.getClass().getAnnotation(org.tavall.dependency.annotations.DelegatesTo.class);
+        if (declaration != null) tokens.addAll(java.util.List.of(declaration.value()));
+        for (Class<?> token : tokens) {
+            if (!token.isInstance(instance)) throw new IllegalArgumentException("Invalid dependency alias " + token.getName());
+        }
+        IDependencyMetaData same = values().stream()
+                .filter(metadata -> metadata.getDependencyInstance() == instance).findFirst().orElse(null);
+        if (same != null) {
+            for (Class<?> token : tokens) {
+                IDependencyMetaData<?, ?> current = get(token);
+                if (current != null && current != same) {
+                    throw new IllegalStateException("Alias is owned by another dependency: " + token.getName());
+                }
+            }
+            tokens.forEach(token -> put(token, same));
+            return dependencyType.cast(instance);
+        }
+        java.util.Map<Class<?>, IDependencyMetaData<?, ?>> previous = new java.util.LinkedHashMap<>();
+        java.util.Set<IDependencyMetaData<?, ?>> displaced = new java.util.HashSet<>();
+        for (Class<?> token : tokens) {
+            IDependencyMetaData<?, ?> metadata = get(token);
+            if (metadata != null) displaced.add(metadata);
+        }
+        for (Map.Entry<Class<?>, IDependencyMetaData<?, ?>> entry : entrySet()) {
+            if (displaced.contains(entry.getValue())) previous.put(entry.getKey(), entry.getValue());
+        }
+        owned.bindDependencyGeneration(this);
+        DependencyMetaData metadata = new DependencyMetaData(this);
+        metadata.bindDependencyInstance(dependencyType, instance.getClass(), new DependencyInterface(dependencyType),
+                new DependencyInstance(instance.getClass()), instance, supplier);
+        previous.keySet().forEach(super::remove);
+        tokens.forEach(token -> put(token, metadata));
+        try {
+            beforeInitialization.accept(instance);
+            metadata.initializeDependencyInstance();
+        } catch (RuntimeException | Error failure) {
+            tokens.forEach(super::remove);
+            super.putAll(previous);
+            try { owned.unbindDependencyGeneration(this); }
+            catch (RuntimeException cleanup) { failure.addSuppressed(cleanup); }
+            throw failure;
+        }
+        for (IDependencyMetaData<?, ?> old : displaced) detach(old.getDependencyInstance());
+        return dependencyType.cast(instance);
+    }
+
+    private void detach(Object instance) {
+        if (instance instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned) {
+            owned.unbindDependencyGeneration(this);
+        }
+    }
+
+    @Override
+    public synchronized void clear() {
+        RuntimeException failure = null;
+        for (IDependencyMetaData<?, ?> metadata : new java.util.HashSet<>(values())) {
+            try { detach(metadata.getDependencyInstance()); }
+            catch (RuntimeException exception) {
+                if (failure == null) failure = exception; else failure.addSuppressed(exception);
+            }
+        }
+        super.clear();
+        Log.info("[DependencyMap] Cleared dependency registrations");
+        if (failure != null) throw failure;
     }
 
     private <T> void validateRegistration(Class<T> dependencyType, T dependencyInstance) {
@@ -110,12 +320,12 @@ public class DependencyMap
     }
 
     @Override
-    public <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType) {
+    public synchronized <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType) {
         return dependencyType == null ? null : get(dependencyType);
     }
 
     @Override
-    public <T> T findInstance(Class<T> dependencyType) {
+    public synchronized <T> T findInstance(Class<T> dependencyType) {
         if (dependencyType == null) {
             return null;
         }
@@ -124,13 +334,26 @@ public class DependencyMap
     }
 
     @Override
-    public <T> T getInstance(Class<T> dependencyType) {
+    public synchronized <T> T getInstance(Class<T> dependencyType) {
         if (dependencyType == null) {
             throw new IllegalArgumentException("dependencyType is required");
         }
 
         IDependencyMetaData<?, ?> metaData = findMetaData(dependencyType);
         if (metaData == null) {
+            if (!dependencyType.isInterface() && !java.lang.reflect.Modifier.isAbstract(dependencyType.getModifiers())) {
+                try {
+                    java.lang.reflect.Constructor<T> constructor;
+                    try {
+                        constructor = dependencyType.getConstructor(IDependencyMap.class);
+                        return registerInstance(dependencyType, constructor.newInstance(this));
+                    } catch (NoSuchMethodException ignored) {
+                        constructor = dependencyType.getConstructor();
+                        return registerInstance(dependencyType, constructor.newInstance());
+                    }
+                } catch (ReflectiveOperationException ignored) {
+                }
+            }
             throw new IllegalStateException("No dependency registered for " + dependencyType.getName());
         }
         return metaData.getInstance(dependencyType);
@@ -138,7 +361,7 @@ public class DependencyMap
 
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public <T> T replaceInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
+    public synchronized <T> T replaceInstance(Class<T> dependencyType, Supplier<? extends T> supplier) {
         if (dependencyType == null) {
             throw new IllegalArgumentException("[DependencyMap] dependency key is required");
         }
@@ -151,6 +374,10 @@ public class DependencyMap
             throw new IllegalStateException("No dependency registered for " + dependencyType.getName());
         }
 
+        if (metaData.getDependencyInstance() instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned
+                && !owned.isDependencyGenerationOwnedBy(this)) {
+            throw new IllegalStateException("A child map cannot replace its parent's dependency generation");
+        }
         T replacement = supplier.get();
         if (replacement == null) {
             throw new IllegalStateException("Replacement supplier returned null for " + dependencyType.getName());
@@ -169,19 +396,29 @@ public class DependencyMap
             }
         }
 
+        Object original = metaData.getDependencyInstance();
+        if (replacement instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned) {
+            owned.bindDependencyGeneration(this);
+        }
         ((IDependencyMetaData) metaData).replaceDependencyInstance(() -> replacement);
+        if (original != replacement) detach(original);
         return metaData.getInstance(dependencyType);
     }
 
     @Override
-    public void removeDependency(Class<?> dependencyType) {
-        if (dependencyType != null) {
+    public synchronized void removeDependency(Class<?> dependencyType) {
+        IDependencyMetaData<?, ?> metadata = dependencyType == null ? null : get(dependencyType);
+        if (metadata == null) return;
+        if (metadata.getDependencyInstance() instanceof org.tavall.dependency.GenerationOwnedDependencyAccess) {
+            try { detach(metadata.getDependencyInstance()); }
+            finally { entrySet().removeIf(entry -> entry.getValue() == metadata); }
+        } else {
             remove(dependencyType);
         }
     }
 
     @Override
-    public boolean isInstanceRegistered(Class<?> dependencyType) {
+    public synchronized boolean isInstanceRegistered(Class<?> dependencyType) {
         return dependencyType != null && containsKey(dependencyType);
     }
 
@@ -195,9 +432,4 @@ public class DependencyMap
         return isEmpty();
     }
 
-    @Override
-    public void clear() {
-        super.clear();
-        Log.info("[DependencyMap] Cleared dependency registrations");
-    }
 }

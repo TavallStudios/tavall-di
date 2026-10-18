@@ -1,0 +1,144 @@
+{
+  "command": "./gradlew --no-daemon check",
+  "java": "25.0.1",
+  "logSha256": "ce9c2fafa8933a0b7d3f375ea6598ed6ab260329bef218be3fcb205336d04dce",
+  "result": "PASS",
+  "rollback": "Revert source change prior to consumer promotion; no current release/package overwritten",
+  "scope": "Generation-owned DI retirement, replacement and alias/parent-reference behavior",
+  "skipped": 0,
+  "suites": [
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.injection.helpers.DependencyInjectorHelperTest",
+      "skipped": "0",
+      "tests": "8"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.DependencyLifecycleTest",
+      "skipped": "0",
+      "tests": "3"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.metadata.DependencyMetaDataTest",
+      "skipped": "0",
+      "tests": "3"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.composition.DependencyBundleAliasAccessIntegrationTest",
+      "skipped": "0",
+      "tests": "1"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.maps.GenerationOwnedDependencyAccessTest",
+      "skipped": "0",
+      "tests": "9"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.maps.DependencyMapTest",
+      "skipped": "0",
+      "tests": "4"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.access.DependencyAccessSourceLowererTest",
+      "skipped": "0",
+      "tests": "6"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.access.DependencyAccessGrantProcessorTest",
+      "skipped": "0",
+      "tests": "2"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.annotations.DelegatesToTest",
+      "skipped": "0",
+      "tests": "3"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.access.DependencyAccessFiveDependencyIntegrationTest",
+      "skipped": "0",
+      "tests": "1"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.injection.helpers.SetupAndRunDITest",
+      "skipped": "0",
+      "tests": "1"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.metadata.MultipleInterfaceInjectionTest",
+      "skipped": "0",
+      "tests": "1"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.metadata.wrappers.DependencyInstanceTest",
+      "skipped": "0",
+      "tests": "2"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.metadata.DependencyMetaDataHelperTest",
+      "skipped": "0",
+      "tests": "1"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.DependencyLoaderAccessTest",
+      "skipped": "0",
+      "tests": "7"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.metadata.wrappers.DependencyInterfaceTest",
+      "skipped": "0",
+      "tests": "2"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.composition.DependencyBundleAccessIntegrationTest",
+      "skipped": "0",
+      "tests": "2"
+    },
+    {
+      "errors": "0",
+      "failures": "0",
+      "name": "org.tavall.dependency.access.DependencyAccessProductionIntegrationTest",
+      "skipped": "0",
+      "tests": "1"
+    }
+  ],
+  "testedSource": "b3d4db5a44330ac7308e23e1c0058aa96c787388",
+  "tests": 57,
+  "unrun": [
+    "Hosted exact-source CI",
+    "New immutable artifact publication",
+    "Registry and Pay/Content deployed consumer acceptance"
+  ]
+}

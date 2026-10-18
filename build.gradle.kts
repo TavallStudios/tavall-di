@@ -7,9 +7,7 @@ plugins {
 }
 
 group = "org.tavall"
-extra["versionTagPrefix"] = "tavall-di"
-apply(from = "gradle/git-version.gradle.kts")
-version = extra["gitVersion"] as String
+version = providers.gradleProperty("tavallDiVersion").orElse("1.2.1").get()
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
@@ -28,6 +26,7 @@ repositories {
 
 dependencies {
     api("org.tavall:tavall-logging:1.0.0")
+    api("org.tavall:tavall-custom-enum-java:1.0.0")
     testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.apiguardian:apiguardian-api:1.1.2")
@@ -73,6 +72,10 @@ publishing {
         }
     }
     repositories {
+        val exactSourceRepository = providers.gradleProperty("tavallPublishRepository").orNull
+        if (!exactSourceRepository.isNullOrBlank()) {
+            maven { name = "TavallExactSource"; url = uri(exactSourceRepository) }
+        }
         val token = providers.environmentVariable("GITHUB_TOKEN")
         if (token.isPresent) {
             maven {
@@ -86,7 +89,6 @@ publishing {
         }
     }
 }
-
 
 tasks.register<Copy>("tavallCiArtifact") {
     val binaryJar = tasks.named<Jar>("jar")
