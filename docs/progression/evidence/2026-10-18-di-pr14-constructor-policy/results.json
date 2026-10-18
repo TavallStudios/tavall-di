@@ -1,0 +1,126 @@
+{
+  "acceptanceBoundaries": {
+    "deployment": "NOT_PERFORMED",
+    "githubActions": "NO_PR_RUNS",
+    "githubBotCheck": "NOT_AVAILABLE",
+    "githubStatusContexts": "NONE",
+    "hostedExactSourceTavallCi": "UNAUTHORIZED_BEFORE_SOURCE_EXECUTION",
+    "localExactSourceGradle": "PASS",
+    "mainPromotion": "NOT_PERFORMED",
+    "packagePublication": "NOT_PERFORMED",
+    "runtimeAcceptance": "NOT_RUN; pure library with no independent runtime"
+  },
+  "currentPrAtReport": {
+    "base": "4b7522852b5d87918e6b7faa726ec86128d43870",
+    "draft": true,
+    "githubActionsRuns": [],
+    "githubStatusContexts": [],
+    "head": "83f6107605e5c4d8e45d34942861a5e6c2307baf",
+    "mergeable": true,
+    "observedAt": "2026-10-18T06:30:58Z",
+    "state": "OPEN"
+  },
+  "localValidation": {
+    "artifact": {
+      "path": "build/libs/tavall-di-1.2.1.jar",
+      "published": false,
+      "sha256": "e324f44e1a3a5b56948145185b95a7f2dad8229bafbe48057716884f8b6d8458",
+      "sizeBytes": 138207
+    },
+    "command": "env -u GITHUB_TOKEN -u GITHUB_ACTOR JAVA_HOME=/opt/jdk-25.0.1 PATH=/opt/jdk-25.0.1/bin:$PATH GRADLE_USER_HOME=/home/ubuntu/.gradle ./gradlew --include-build <tavall-logging@e047172> --include-build <tavall-custom-enum-java@2284168> --no-daemon --console=plain --info clean check javadoc jar",
+    "gitDiffCheck": "PASS for the PR diff against current staging.",
+    "javadocWarnings": {
+      "count": 100,
+      "kind": "Existing missing-comment warnings; javadoc task exited successfully."
+    },
+    "log": {
+      "path": "/srv/dev-storage/workspaces/tavall-web-content/working/library-pagination-20261017/.tavallai/receipts/build/di-pr14-canonical-policy-reconcile-20261018-gradle.log",
+      "sha256": "72b586a4c2a44477f07059c2ca2d0444b9f00d6155dbd14f1df824205f41e2d2"
+    },
+    "results": {
+      "check": "PASS",
+      "compilation": "PASS",
+      "jar": "PASS",
+      "javadoc": "PASS",
+      "policyTests": {
+        "class": "org.tavall.dependency.architecture.DependencyArchitecturePolicyTest",
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 5
+      },
+      "unitTests": {
+        "aggregateMethod": "sorted XML filename bytes + NUL + raw XML bytes",
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 103,
+        "xmlAggregateSha256": "9df582b2a8fe987db35c352596e33ff10758fdad4175996da3b18156872ddddf",
+        "xmlFiles": 22
+      },
+      "verifyJarContents": "PASS"
+    },
+    "sourceFiles": {
+      "buildFileSha256": "a02ee256082c4c762adbe553bec8645c62e78c2c8c00162db3ef9e18c0093096",
+      "ciManifestSha256": "3f3a96142de3e781f930528ea6e1ee3e6383e6550f26cf034bd00bfca12eb6b1",
+      "policySha256": "3422ee9ae4c6cdb86a58576eb50afd4c78815c757689ab0aff3d5c5ddb2459bc",
+      "testSha256": "f2b2f3c1d33105148587673d0caf609ad1481dc53b96d653b31f6f9f3ab45497"
+    },
+    "toolchain": {
+      "gradle": "9.6.1",
+      "java": "25.0.1"
+    }
+  },
+  "policyCorrection": {
+    "canonicalPolicy": "Managed constructor injection is rejected for ordinary types and Builders; use DependencyAccess.",
+    "codexReview": "NOT_REQUESTED per user direction.",
+    "implementation": "Audit constructor declarations and @DelegatesTo concrete/interface tokens directly; remove bytecode call-site scanning and its cache.",
+    "previousPolicy": "Allowed direct managed-dependency construction when the call site was a Builder.",
+    "tavallPrReviewRole": "In-context review of the corrected current diff completed; no unresolved source finding remains."
+  },
+  "pullRequest": 14,
+  "repository": "TavallStudios/tavall-di",
+  "reviewAndBot": {
+    "codexReview": "NOT_REQUESTED per user direction.",
+    "tavallGithubBot": "UNAVAILABLE: dedicated Bot runtime is not deployed; legacy host service is inactive/disabled and current host lacks the configured App credential and installed artifact.",
+    "tavallPrReviewRole": "Completed in context on the corrected current diff; no unresolved source finding."
+  },
+  "schemaVersion": 1,
+  "sourceGraph": {
+    "integration": {
+      "firstParent": "44a64d80c80a0741d22d6b2d7374325495b46c43",
+      "mergeCommit": "83f6107605e5c4d8e45d34942861a5e6c2307baf",
+      "secondParent": "4b7522852b5d87918e6b7faa726ec86128d43870"
+    },
+    "testedSources": [
+      {
+        "repository": "TavallStudios/tavall-di",
+        "role": "Exact merged current-staging source containing the corrected constructor policy and regressions.",
+        "sha": "83f6107605e5c4d8e45d34942861a5e6c2307baf"
+      },
+      {
+        "repository": "TavallStudios/tavall-logging",
+        "role": "Exact source composite from current staging .tavallci/ci.yaml.",
+        "sha": "e047172ab7c2be005baf0b2c4b46e230ead78417"
+      },
+      {
+        "repository": "TavallStudios/tavall-custom-enum-java",
+        "role": "Exact source composite from current staging .tavallci/ci.yaml.",
+        "sha": "2284168910f755a0d13a68fbc821cedc14d0a49b"
+      }
+    ]
+  },
+  "tavallCiExecution": {
+    "evidenceHandle": "tavall-storage://dev-storage/jobs/f4b3768e-4f54-44ca-9f3c-4c88f0717b15",
+    "expectedHead": "83f6107605e5c4d8e45d34942861a5e6c2307baf",
+    "failureClass": "AUTHORIZATION_CONTEXT",
+    "githubCheckPublished": false,
+    "message": "environment repository execution requires CONTROL environment context",
+    "origin": "chatgpt",
+    "profile": "all",
+    "requestCommandId": "593e7f86-2090-4737-b07d-e304c45c69e4",
+    "sourceExecution": "NOT_STARTED",
+    "status": "UNAUTHORIZED_BEFORE_SOURCE_EXECUTION"
+  },
+  "testedSource": "83f6107605e5c4d8e45d34942861a5e6c2307baf"
+}
