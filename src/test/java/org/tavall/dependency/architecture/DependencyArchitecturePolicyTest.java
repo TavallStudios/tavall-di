@@ -1,6 +1,5 @@
 package org.tavall.dependency.architecture;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.tavall.dependency.annotations.DelegatesTo;
 
@@ -10,13 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class DependencyArchitecturePolicyTest {
-    @BeforeEach
-    void clearPolicyCache() {
-        DependencyArchitecturePolicy.clearConstructorScanCacheForTests();
-    }
-
     @Test
-    void rejectsManagedDependencyConstructionFromNonBuilderCallers() {
+    void rejectsManagedDependencyInjectionIntoOrdinaryConstructors() {
         var violations = DependencyArchitecturePolicy.auditManagedConstructorInjection(
                 InvalidHandler.class,
                 productionTypes()
@@ -24,22 +18,25 @@ final class DependencyArchitecturePolicyTest {
 
         assertTrue(violations.stream().anyMatch(violation ->
                 violation.rule().equals(DependencyArchitecturePolicy.MANAGED_CONSTRUCTOR_INJECTION_RULE)
-                        && violation.message().contains(InvalidHandlerFactory.class.getName())
+                        && violation.message().contains(IManagedDependency.class.getName())
         ));
     }
 
     @Test
-    void acceptsBuilderOwnedManagedConstructorComposition() {
+    void builderOwnershipDoesNotPermitManagedDependencyConstructorInjection() {
         var violations = DependencyArchitecturePolicy.auditManagedConstructorInjection(
-                ValidHandler.class,
+                BuilderOwnedHandler.class,
                 productionTypes()
         );
 
-        assertTrue(violations.isEmpty(), () -> "Unexpected violations: " + violations);
+        assertTrue(violations.stream().anyMatch(violation ->
+                violation.rule().equals(DependencyArchitecturePolicy.MANAGED_CONSTRUCTOR_INJECTION_RULE)
+                        && violation.message().contains(BuilderOwnedHandler.class.getName())
+        ));
     }
 
     @Test
-    void rejectsManagedDependencyInjectionIntoBuilderConstructor() {
+    void rejectsManagedDependencyInjectionIntoBuilderConstructors() {
         var violations = DependencyArchitecturePolicy.auditManagedConstructorInjection(
                 InvalidHandlerBuilder.class,
                 productionTypes()
@@ -51,13 +48,11 @@ final class DependencyArchitecturePolicyTest {
     }
 
     @Test
-    void acceptsValueConstructorsThatAreNotManagedDependencies() {
-        var violations = DependencyArchitecturePolicy.auditManagedConstructorInjection(
+    void acceptsValueConstructorsThatDoNotCarryManagedDependencies() {
+        assertTrue(DependencyArchitecturePolicy.auditManagedConstructorInjection(
                 ValueObject.class,
                 productionTypes()
-        );
-
-        assertTrue(violations.isEmpty());
+        ).isEmpty());
     }
 
     @Test
@@ -72,9 +67,8 @@ final class DependencyArchitecturePolicyTest {
         return List.of(
                 ManagedDependency.class,
                 InvalidHandler.class,
-                InvalidHandlerFactory.class,
-                ValidHandler.class,
-                ValidHandlerBuilder.class,
+                BuilderOwnedHandler.class,
+                BuilderOwnedHandlerBuilder.class,
                 InvalidHandlerBuilder.class,
                 ValueObject.class
         );
@@ -92,20 +86,14 @@ final class DependencyArchitecturePolicyTest {
         }
     }
 
-    private static final class InvalidHandlerFactory {
-        private InvalidHandler build(IManagedDependency dependency) {
-            return new InvalidHandler(dependency);
+    private static final class BuilderOwnedHandler {
+        private BuilderOwnedHandler(IManagedDependency dependency) {
         }
     }
 
-    private static final class ValidHandler {
-        private ValidHandler(IManagedDependency dependency) {
-        }
-    }
-
-    private static final class ValidHandlerBuilder {
-        private ValidHandler build(IManagedDependency dependency) {
-            return new ValidHandler(dependency);
+    private static final class BuilderOwnedHandlerBuilder {
+        private BuilderOwnedHandler build(IManagedDependency dependency) {
+            return new BuilderOwnedHandler(dependency);
         }
     }
 
