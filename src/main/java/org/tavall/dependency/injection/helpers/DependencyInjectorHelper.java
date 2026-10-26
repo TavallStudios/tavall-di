@@ -240,6 +240,11 @@ public class DependencyInjectorHelper<INTERFACE, INSTANCE>
             if (dependencyMetaData == null) {
                 dependencyMetaData = new DependencyMetaData();
                 dependencyMetaDataHelper.populateMetaData(dependencyMetaData, wrappedType, wrappedConcrete);
+                if (dependencyMetaData.getDependencyInstance()
+                        instanceof org.tavall.dependency.GenerationOwnedDependencyAccess owned) {
+                    // Metadata publication bypasses registerInstance; bind before any declared input or lifecycle runs.
+                    owned.bindDependencyGeneration(dependencyMetaData.getDependencyMap());
+                }
                 registeredMetaData.add(dependencyMetaData);
             }
 

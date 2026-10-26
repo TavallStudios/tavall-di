@@ -1,0 +1,141 @@
+{
+  "source": "aa5fe3c52df55a7265abce398b1687fa2790c1be",
+  "change": "Bind newly annotated generation-owned instances to their existing metadata map before declared-input and lifecycle initialization;preserve two-phase publication and existing lifecycle.",
+  "producerDeclaredGraph": {
+    "tavallLogging": "e047172ab7c2be005baf0b2c4b46e230ead78417",
+    "tavallCustomEnum": "2284168910f755a0d13a68fbc821cedc14d0a49b",
+    "defaultBuildVersion": "1.2.1",
+    "result": "Compile production/test Java,107cases,verifyJarContents,javadoc,tavallCiArtifact pass.",
+    "boundary": "Local required tasks;native Maven mirror/provider acceptance and public release publication not claimed."
+  },
+  "producerTests": {
+    "tests": 107,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "consumer": {
+    "source": "5946ad26a2e6042304bdf55368d6f7ec99a5fb33",
+    "diSourceOverride": "aa5fe3c52df55a7265abce398b1687fa2790c1be",
+    "sourceComposition": "Explicit provisional MC integration uses its15-source graph with candidate DI override;declared MC CI pin will advance only after the upstream merge.",
+    "graph": [
+      {
+        "repository": "TavallStudios/tavall-custom-enum-java",
+        "sha": "0bbf238d85ff517e452efaabd7644b2e9680ddd7"
+      },
+      {
+        "repository": "TavallStudios/tavall-di",
+        "sha": "aa5fe3c52df55a7265abce398b1687fa2790c1be"
+      },
+      {
+        "repository": "TavallStudios/tavall-logging",
+        "sha": "e047172ab7c2be005baf0b2c4b46e230ead78417"
+      },
+      {
+        "repository": "TavallStudios/tavall-eventbus",
+        "sha": "00866ad2b88f64c77bad6982b2bddf9051ff037a"
+      },
+      {
+        "repository": "TavallStudios/tavall-registry",
+        "sha": "9ff6c035769eae79947efd4cf78dec1af0a09e3f"
+      },
+      {
+        "repository": "TavallStudios/tavall-concurrency",
+        "sha": "e5578a2ba6f5d2317400585569acc0c1f94c4444"
+      },
+      {
+        "repository": "TavallStudios/tavall-cache",
+        "sha": "e6e78fdaf8cef80a488c7a661b8c51384e8780fe"
+      },
+      {
+        "repository": "TavallStudios/tavall-reflection",
+        "sha": "aa57350b99d10e3950a9a0760feba0c523faf13d"
+      },
+      {
+        "repository": "TavallStudios/tavall-scheduler",
+        "sha": "5d4c73627f64c667d6674605fd882b676f016d39"
+      },
+      {
+        "repository": "TavallStudios/tavall-discord",
+        "sha": "ca83559e8a48f7ee35b65e380d89b2bc3f5747e9"
+      },
+      {
+        "repository": "TavallStudios/tavall-test-suite-tools",
+        "sha": "0f4c2fe5b03eff6515974ee512b44661e98618cf"
+      },
+      {
+        "repository": "TavallStudios/tavall-minecraft-framework",
+        "sha": "411d7da01e8bbef077cefba3081841e574c69b96"
+      },
+      {
+        "repository": "TavallStudios/tavall-database",
+        "sha": "32aa272861726f6fefec116bd459e5075d336004"
+      },
+      {
+        "repository": "TavallStudios/tavall-mc-anticheat",
+        "sha": "c1d084d2abee14d38d87ed763c830f37c9e9758e"
+      },
+      {
+        "repository": "TavallStudios/tavall-mc-packet-filter",
+        "sha": "dde5d1d3e55caa2f09977061d5bbfe296111cddf"
+      }
+    ],
+    "proxyTests": {
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "runtimeApiTests": {
+      "tests": 86,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "architectureTests": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "regressionBefore": {
+    "baseSource": "d16c1de2c205f3c72fe63cd5a2765c3b1bf55368",
+    "scope": "Base source plus new regression fixture;not a passing exact-source run.",
+    "tests": 1,
+    "failures": 1,
+    "reason": "PostConstruct typed access fails because annotation bootstrap never binds GenerationOwnedDependencyAccess.",
+    "fixtures": {
+      "src/test/java/org/tavall/dependency/injection/helpers/generationfixtures/GenerationReader.java": "b3bd6a4a77391481798d9e94c6346ab6b17dc3af4c974b61c0670d4b9468fdbb",
+      "src/test/java/org/tavall/dependency/injection/helpers/generationfixtures/IGenerationReader.java": "82d1a9ea75f6f71f5889374906bbb4a0f05e395e69b8b259119e1cfe36c02b8e",
+      "src/test/java/org/tavall/dependency/injection/helpers/generationfixtures/GenerationProbeData.java": "8024e9bcdf3e1bf63026c2b3574803987e22267fdb3798e7008e5ad8991749b5",
+      "src/test/java/org/tavall/dependency/injection/helpers/AnnotatedGenerationBootstrapTest.java": "96e820fcf0bc2833cfddbb6c22ce8c45ca3dffafff5fe2214e2bb0951cd4f178"
+    }
+  },
+  "localArtifact": {
+    "path": "build/tavall-ci-artifacts/tavall-di.jar",
+    "bytes": 138314,
+    "sha256": "e0b5becdf3f2a9c542d486660f4c25c0d084221a5970d650164cce80488c7b06",
+    "publication": "Local staging only;not a public immutable release."
+  },
+  "logs": {
+    "di-annotation-before.log": "16d0509a50221a0899742eb7af6d0fb4d2e71380912cea484576afc3c7a6fe9a",
+    "di-annotation-full-tests.log": "a272fb5bbc4b4c5d7ba08ce95731e216165bfd551ddf297d89cd9b59d77d8fa5",
+    "di-producer-declared-compile.log": "ab2f491b55e5add0d2d42e64370c8236522457c02494c8c7b9d02592e9e400fe",
+    "di-producer-declared-checks.log": "e77229338f8ab6994e6e251be17a9910c1f281b053074a7abc70a4a391957a0d",
+    "proxy-di-candidate-tests.log": "1e3432ac18c19e475c801c5ca95c3013fe4309b72b1209de772c78fd507e39ca",
+    "proxy-command-fenced-tests.log": "0769fba52ef1c58d6a2954da335d55171be9cda42263b3f8ae7cae81b54fba28"
+  },
+  "notion": {
+    "pageId": "3f838458-ddfd-8148-8d29-f49a329f1789",
+    "status": "TARGETED_AMENDMENT_VERIFIED",
+    "verification": "Technical and Progression updates both read back with exact source aa5,107 producer cases and121 affected consumer cases;SYSTEM/LIBRARY classification preserved.",
+    "boundary": "No deployed or human-verified design claim.",
+    "progressionPageId": "3f838458-ddfd-814a-9175-c68d3526c266"
+  },
+  "moduleClassification": {
+    "primary": "SYSTEM",
+    "secondary": "LIBRARY",
+    "runtimeOwner": "Consuming runtimes;no independent executable."
+  }
+}

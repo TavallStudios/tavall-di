@@ -10,8 +10,14 @@
 > **Owning System:** `tavall-di`  
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
-> **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-10-17 11:08 PM PDT`
+> **Audited Against:** `TavallStudios/tavall-di@aa5fe3c52df55a7265abce398b1687fa2790c1be`  
+> **Last Reconciled:** `2026-10-26 02:31 PM PDT`
+
+## 2026-10-26 — Annotation generation binding
+
+[PR #27](https://github.com/TavallStudios/tavall-di/pull/27), implementation source `aa5fe3c52df55a7265abce398b1687fa2790c1be`, repairs a default annotation-bootstrap path that created a generation-owned consumer without binding its metadata map. A lifecycle regression fails before the fix; four regressions verify lifecycle/idempotence, reload, clear/fresh bootstrap and failed-start rollback. All 107 owning tests pass without failures or skips. The producer-declared source graph also passes production/test compilation, JAR verification, Javadoc and local artifact staging.
+
+The actual Minecraft consumer uses this exact candidate DI source in an explicit provisional graph and passes 34 proxy cases, 86 Runtime API cases and the canonical architecture gate. MC final source pinning and full/native quality remain separate. The [technical contract](../GENERATION_OWNED_DEPENDENCY_ACCESS.md) and [immutable validation report](evidence/2026-10-26-annotation-generation/validation.json) record both producer and consumer source boundaries. There is no public package release or independent DI deployment claim. Historical Environment limitations below retain their dated scope; current CI uses the supported existing SYSTEM Executor route.
 
 ## About
 
@@ -27,23 +33,23 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | Secondary Role | `LIBRARY` |
 | Owning System | `tavall-di` |
 | Runtime Owner | Consuming runtime modules own composition; `tavall-di` has no independent executable runtime |
-| Primary Consumers | Not established by this module-focused audit |
-| Current Branch / PR Stack | PRs [#10](https://github.com/TavallStudios/tavall-di/pull/10), [#19](https://github.com/TavallStudios/tavall-di/pull/19), [#13](https://github.com/TavallStudios/tavall-di/pull/13), and [#14](https://github.com/TavallStudios/tavall-di/pull/14) merged to `main` through staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) at `6e45442bcd89c0efdc9505d0e48975c7aefe8450`. `staging/platform` remains synchronized with `main`; no child PRs from this integration remain open. |
-| Audited Revision | [`6e45442bcd89c0efdc9505d0e48975c7aefe8450`](https://github.com/TavallStudios/tavall-di/commit/6e45442bcd89c0efdc9505d0e48975c7aefe8450) on `main` |
+| Primary Consumers | Minecraft proxy commands validated locally; broader named-consumer acceptance remains separate |
+| Current Branch / PR Stack | [PR #27](https://github.com/TavallStudios/tavall-di/pull/27) repairs annotation generation binding; previous integrated PRs remain recorded in dated history. |
+| Audited Revision | `aa5fe3c52df55a7265abce398b1687fa2790c1be`; validated implementation source for #27. |
 
 ## Current Status
 
 | Field | State |
 | --- | --- |
 | Overall State | `PARTIAL` |
-| Current Phase | Main source integration complete; release and named consumer acceptance remain separate |
-| Implementation | Main includes provided dependency factories, lowerer fixes, constructor policy, and source-owned CI configuration |
-| Integration | PRs #10, #19, #13, and #14 are integrated on main; named consumer acceptance remains unestablished |
-| Validation | Java 25.0.1 / Gradle 9.6.1 local integrated check passed: 103 tests, zero failures/errors/skips, and `verifyJarContents`; Tavall Bot local exact-source check passed on the same source tree |
-| Runtime / Consumer Acceptance | No independent DI runtime; named consumer acceptance is not established by this mainline audit |
+| Current Phase | Generation binding repair and named local consumer checks; native acceptance and release remain separate. |
+| Implementation | New annotated generation-owned consumers bind to their metadata map before declared inputs/lifecycle; existing publication, aliases and rollback are preserved. |
+| Integration | PR #27 source composes with current Minecraft proxy commands through an explicit candidate graph. |
+| Validation | 107 owning DI cases; declared-source compilation, JAR verification, Javadoc and artifact staging pass locally with zero test skips. |
+| Runtime / Consumer Acceptance | Minecraft candidate: 34 proxy cases, 86 Runtime API cases and 1 canonical architecture case pass; final declared pinning/full/native acceptance remain separate. |
 | Deployment Verification | `N/A` — non-deployable library |
-| Unrun Acceptance | Hosted TCI has not executed because CONTROL has no active developer environment; package release and named consumer acceptance are also unrun |
-| Next Slice | Restore the supported CONTROL environment path, run hosted TCI, and validate named consumers before an approved package release |
+| Unrun Acceptance | Native CI for this repair and public package release are unrun; the supported route is existing envless SYSTEM Executor execution. |
+| Next Slice | Integrate verified source, advance the MC declared pin and run its full/local/native checks before release decisions. |
 
 ## Progression Timeline
 
@@ -60,11 +66,11 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 
 | Validation | State | Evidence | Remaining Work |
 | --- | --- | --- | --- |
-| Architecture / module boundary | Locally validated | Integrated main tree `6e45442bcd89c0efdc9505d0e48975c7aefe8450`; constructor policy and the existing source-lowering boundary passed | Re-run against later source changes |
-| Unit | Passed locally | 103 tests, zero failures/errors/skips; Java 25.0.1 / Gradle 9.6.1; exact Logging and Custom Enum source composites | Run hosted TCI when a CONTROL developer environment is active |
-| Integration | DI staging-to-main tree passed locally | Bot check `tavall-local/exact-source` on staging head `87d35f8fee060128d82943c4d18b1a6aa06c6774`; main merge `6e45442` has the same tree | Validate named consumer integration and compatibility |
-| Consumer / Runtime | Not established | No named runtime owner or accepted consumer evidence recorded in this audit | Identify and validate runtime consumers |
-| End-to-End | N/A | Root module is a non-deployable library | Validate through owning runtime when one is identified |
+| Architecture / module boundary | Locally validated | SYSTEM primary / LIBRARY secondary preserved; normal metadata ownership and lifecycle regression checks pass | Native CI remains separate |
+| Unit | Passed locally | 107 tests, zero failures/errors/skips; declared Logging and Custom Enum source graph | Native producer acceptance not claimed |
+| Integration | Named consumer passed locally | MC candidate: 34 proxy, 86 Runtime API and 1 canonical architecture cases with exact candidate DI override | Final declared MC pin and full/native checks |
+| Consumer / Runtime | Local named integration only | Actual DI bootstrap, module composition and retained-reference regression paths | Public runtime/deployment acceptance belongs to consumers |
+| End-to-End | Owning consumer boundary | No independent executable DI runtime | Complete full/native consumer acceptance before release decisions |
 
 ## Dependencies and Integration
 
@@ -218,3 +224,9 @@ Staging root PR #26 merged to `main` at `6e45442bcd89c0efdc9505d0e48975c7aefe845
 The integrated tree passed Java 25.0.1 / Gradle 9.6.1 `clean check javadoc jar`: 103 tests, zero failures/errors/skips, and `verifyJarContents`; the local JAR SHA-256 is `e324f44e1a3a5b56948145185b95a7f2dad8229bafbe48057716884f8b6d8458`. The Bot's `tavall-local/exact-source` check passed on staging head `87d35f8`, whose tree matches main's merge tree. Hosted TCI was not run because no active CONTROL developer environment exists. No GitHub Actions run or Codex review was used.
 
 This promotes source only. No package was published, no named consumer/runtime acceptance was performed, and no deployment was needed for this non-deployable library.
+
+## Documentation Update State
+
+- Updated: 2026-10-26 02:31 PM PDT.
+- GitHub: owning module Progression amendment in PR #27; prior dated history retained.
+- Notion: current targeted Progression amendment saved and read back; broader workspace reconciliation remains separate.
