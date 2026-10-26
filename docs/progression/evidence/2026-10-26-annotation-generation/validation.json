@@ -129,7 +129,13 @@
   "notion": {
     "pageId": "3f838458-ddfd-8148-8d29-f49a329f1789",
     "status": "TARGETED_AMENDMENT_VERIFIED",
-    "verification": "Supported fetch after update contains exact source aa5,annotation binding paragraph and107case scope.",
-    "boundary": "No deployed or human-verified design claim."
+    "verification": "Technical and Progression updates both read back with exact source aa5,107 producer cases and121 affected consumer cases;SYSTEM/LIBRARY classification preserved.",
+    "boundary": "No deployed or human-verified design claim.",
+    "progressionPageId": "3f838458-ddfd-814a-9175-c68d3526c266"
+  },
+  "moduleClassification": {
+    "primary": "SYSTEM",
+    "secondary": "LIBRARY",
+    "runtimeOwner": "Consuming runtimes;no independent executable."
   }
 }
