@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-18T03:03:00Z",
+  "repository": "TavallStudios/tavall-di",
+  "pullRequest": 10,
+  "testedSource": {
+    "sha": "525fef5d9f03ba81fd5218368a1d8328776b3827",
+    "tree": "e55b83389c2bda1f68003e6ad60bd707c9f7d961",
+    "role": "exact implementation source exercised by local Gradle validation"
+  },
+  "currentPrHeadAtHostedAttempt": {
+    "sha": "f5352f882625a974c9d33a7848fd3fd183fe02d4",
+    "deltaFromTestedSource": [
+      "README.md",
+      "docs/progression/TAVALL_DI_PROGRESSION.md"
+    ],
+    "deltaType": "documentation only"
+  },
+  "localValidation": {
+    "command": "./gradlew clean check javadoc jar --no-daemon --console=plain",
+    "toolchain": {
+      "java": "25.0.1",
+      "gradle": "9.6.1"
+    },
+    "results": {
+      "check": "PASS",
+      "javadoc": "PASS",
+      "jar": "PASS",
+      "verifyJarContents": "PASS",
+      "junit": {
+        "tests": 96,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "junitXml": {
+      "files": 21,
+      "aggregateSha256": "16d81010ff9b772400d366e6807277fbad667da87dda3b0b9058ddd7b0b7dadf"
+    },
+    "focusedCases": [
+      {
+        "class": "org.tavall.dependency.access.ProvidedDependencyGeneratedAccessTest",
+        "name": "authoredAccessWithGeneratedLookingNameDoesNotExpandBusinessMethods()",
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "org.tavall.dependency.access.ProvidedDependencyGeneratedAccessTest",
+        "name": "expandedFactoryAndConsumerCompileAndBootstrapThroughTypedGetters()",
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "javadocWarnings": {
+      "count": 100,
+      "kind": "existing missing-comment warnings"
+    },
+    "jarArtifact": {
+      "path": "build/libs/tavall-di-1.2.1.jar",
+      "sizeBytes": 132847,
+      "sha256": "0c64acf3f8cb436428d837df8c1768d86173771fb4767e0ecdcb477b7e1edd94",
+      "publication": "not published; local build output only"
+    }
+  },
+  "hostedExactSource": {
+    "status": "BLOCKED_BEFORE_EXECUTION",
+    "attemptedHead": "f5352f882625a974c9d33a7848fd3fd183fe02d4",
+    "requestId": "38dd54fc-f37d-4ea2-953a-c9c6982f34af",
+    "commandId": "c453a334-8dd9-48cd-a1f2-165b9e15eece",
+    "failureReason": "UNAUTHORIZED",
+    "message": "environment repository execution requires CONTROL environment context",
+    "sourceChecksRan": false,
+    "githubCombinedStatusContexts": [],
+    "githubPullRequestWorkflowRuns": []
+  },
+  "integration": {
+    "targetBranch": "staging/platform",
+    "stagingPullRequest": 26,
+    "stagingHeadAtReview": "2fb048323b866ddd7163dd8af951b0ce6208b431",
+    "stagingPullRequestDraft": true,
+    "composedStagingValidation": "NOT_RUN"
+  },
+  "separateAcceptanceBoundaries": {
+    "mainPromotion": "NOT_PERFORMED",
+    "packageRelease": "NOT_PERFORMED",
+    "deployment": "NOT_PERFORMED"
+  }
+}

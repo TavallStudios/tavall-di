@@ -1,0 +1,58 @@
+{
+  "repository": "TavallStudios/tavall-di",
+  "sourceCommit": "5bf1ed053e491ccc0ebee5e1827b623c5654bcbb",
+  "sourceTree": "1fe7d56f4f1b90e3644094359247341c0faf92ab",
+  "command": "Java 25 Gradle 9.6.1 --offline clean check javadoc",
+  "tests": {
+    "tests": 95,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "jarBoundaryCheck": "PASS",
+  "javadoc": "PASS with 100 missing-comment warnings",
+  "acceptanceScope": "Local source and package checks; first-party package dependency provenance is not hosted exact-source acceptance",
+  "nativeCi": {
+    "currentHead": "UNRUN_CURRENT_HEAD: known CONTROL artifact-export credential boundary remains blocked",
+    "previousHead": "abf6397244f62bad9d2e952f7dd693fc1301b672",
+    "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
+    "outcome": "PUBLICATION_FAILED: identityFile must be a direct file in the operation credential directory; the earlier Executor invocation completed with exit0 but detailed check results and approved artifact/evidence publication are unavailable"
+  },
+  "deployment": "NOT_RUN",
+  "regressions": [
+    "typed factory create() and named consumer getters",
+    "compiled expanded factory/consumer, JDK HttpClient without network",
+    "factory prerequisites initialized before construction",
+    "provided instances available before consumer field injection",
+    "chains initialize by declared inputs; cycles reject",
+    "all four non-concrete provider declarations rejected",
+    "aliases share and replace metadata",
+    "scoped maps isolated; retired factory/consumer access fails",
+    "ordinary and produced self-access is not a construction cycle",
+    "produced-object injected inputs initialize before lifecycle",
+    "failed product restores prior alias metadata and allows a fresh factory",
+    "bootstrap failure rolls back completed providers and retries without clearing unrelated bindings",
+    "expanded self access retains original owner across generated access objects",
+    "partial setup repairs aliases and ordinary tokens without recreating live providers/products",
+    "failed alias repair preserves the previously owned generation",
+    "manual lambda factories remain replaceable at the same call site without synthetic lifecycle bindings",
+    "pure named,anonymous and lambda factories do not create accidental class singletons",
+    "manual factory injection/lifecycle remains managed, and scoped injection cannot silently fall back to the global map",
+    "metadata field injection resolves from its owning map for factories and products",
+    "generation-owned factory products retain scoped injection,aliases and retirement",
+    "missing provider binding repairs without replacing the live product or metadata",
+    "construction strategy is restored after a later repair failure",
+    "conflicting ordinary/provided declarations reject before publication",
+    "provider repair preserves borrowed parent metadata construction and generation ownership"
+  ],
+  "referenceNativeInvocation": {
+    "requestId": "1578d22a-3792-42b0-be16-acc4ff1e7b4e",
+    "sourceHead": "abf6397244f62bad9d2e952f7dd693fc1301b672",
+    "operationId": "shared-b37849b3e60796f28778b6d9d449f263",
+    "invocationState": "COMPLETED",
+    "exitCode": 0,
+    "resultingStateVerified": "true",
+    "repository": "TavallStudios/tavall-di"
+  },
+  "nativeAcceptanceBoundary": "An earlier DI invocation completed with exit0; CONTROL artifact publication failed. Current source acceptance and check-by-check evidence are not established by that process result."
+}

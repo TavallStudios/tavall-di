@@ -9,6 +9,7 @@
 
 package org.tavall.dependency.maps.interfaces;
 
+import org.tavall.dependency.IDependencyFactory;
 import org.tavall.dependency.metadata.interfaces.IDependencyMetaData;
 
 import java.util.function.Supplier;
@@ -27,6 +28,20 @@ public interface IDependencyMap {
     <T> T registerInstance(Class<T> dependencyType, T dependencyInstance);
 
     <T> T registerInstance(Class<T> dependencyType, Supplier<? extends T> supplier);
+
+    /**
+     * Creates and registers one dependency instance through a Tavall-owned factory.
+     *
+     * @param dependencyType the primary token exposed by the produced instance
+     * @param dependencyFactory the factory that creates the dependency
+     * @param aliases additional tokens that resolve to the same metadata-owned instance
+     * @param <T> the primary dependency token type
+     * @return the created dependency instance
+     */
+    <T> T registerFactory(
+            Class<T> dependencyType,
+            IDependencyFactory<? extends T> dependencyFactory,
+            Class<?>... aliases);
 
     <T> IDependencyMetaData<?, ?> findMetaData(Class<T> dependencyType);
 

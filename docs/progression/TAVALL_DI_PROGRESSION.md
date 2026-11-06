@@ -1,14 +1,17 @@
 # tavall-di Progression
 
+> **Notion Twin:** [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266)
+
 > **Status:** Active progression record  
 > **Document Type:** `PROGRESSION`  
 > **Progression Scope:** `MODULE`  
-> **Module Type:** `LIBRARY`  
+> **Module Type:** `SYSTEM`<br>
+> **Secondary Role:** `LIBRARY`<br>
 > **Owning System:** `tavall-di`  
 > **Owns:** Audited implementation, integration, validation, and historical progression for the root `tavall-di` library module  
 > **Does Not Own:** Product/design rules, aggregate system progression, deployment history, or Git workflow policy  
 > **Audited Against:** `TavallStudios/tavall-di@d8ecc02302522e3acecc586c3f9e918007c82ca3`  
-> **Last Reconciled:** `2026-09-27 5:30 PM PDT`
+> **Last Reconciled:** `2026-10-17 8:05 PM PDT`
 
 ## About
 
@@ -20,11 +23,12 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | --- | --- |
 | Repository | [TavallStudios/tavall-di](https://github.com/TavallStudios/tavall-di) |
 | Module | Root Gradle project (`tavall-di`) |
-| Module Type | `LIBRARY` |
+| Module Type | `SYSTEM` |
+| Secondary Role | `LIBRARY` |
 | Owning System | `tavall-di` |
-| Runtime Owner | `None` — not an independently executable runtime; no named owning runtime is recorded in the audited module metadata |
+| Runtime Owner | Consuming runtime modules own composition; `tavall-di` has no independent executable runtime |
 | Primary Consumers | Not established by this module-focused audit |
-| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17); platform integration [#12](https://github.com/TavallStudios/tavall-di/pull/12) (draft to `main`); provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10), module profiles [#11](https://github.com/TavallStudios/tavall-di/pull/11), architecture policy [#14](https://github.com/TavallStudios/tavall-di/pull/14), and CI localization [#13](https://github.com/TavallStudios/tavall-di/pull/13) remain unmerged against `staging/platform`. |
+| Current Branch / PR Stack | README and module Progression [#17](https://github.com/TavallStudios/tavall-di/pull/17) merged to `main` on 2026-09-28. Provided dependency factories [#10](https://github.com/TavallStudios/tavall-di/pull/10) targets `staging/platform`; active staging root [#26](https://github.com/TavallStudios/tavall-di/pull/26) targets `main` and remains Draft. |
 | Audited Revision | [`d8ecc02302522e3acecc586c3f9e918007c82ca3`](https://github.com/TavallStudios/tavall-di/commit/d8ecc02302522e3acecc586c3f9e918007c82ca3) on `main` |
 
 ## Current Status
@@ -36,7 +40,7 @@ The root Gradle library owns dependency discovery, metadata and instance lifecyc
 | Implementation | Source and a single root Gradle library boundary are present on `main` |
 | Integration | Library-facing API exists; consumer acceptance is not established by this audit |
 | Validation | Source/build/docs audited on GitHub; Gradle build and tests were not executed in this documentation-only pass |
-| Runtime / Consumer Acceptance | No runtime owner assigned; consumer acceptance not established |
+| Runtime / Consumer Acceptance | No independent DI runtime; named consumer acceptance is not established by this mainline audit |
 | Deployment Verification | `N/A` — non-deployable library |
 | Primary Blocker | The mainline test suite has not been executed in this audit. Several feature/architecture PRs remain unmerged on `staging/platform`, so this record describes `main` only.
 | Next Slice | Add the module-local CI definition, obtain build/test evidence, and verify compatibility with named consumers where applicable |
@@ -99,13 +103,50 @@ Run the tracked unit/integration suite and record its result; add missing lifecy
 
 | Surface | Sync State | Location | Last Updated | Evidence |
 | --- | --- | --- | --- | --- |
-| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-09-27 5:30 PM PDT | Documentation branch `working/canonical-readme-2026-09-27`, PR [#17](https://github.com/TavallStudios/tavall-di/pull/17); audited main baseline `d8ecc02302522e3acecc586c3f9e918007c82ca3`. |
-| Notion | `TEMPORARY_DRIFT` | Required twin not inspected | 2026-09-27 5:30 PM PDT | User-directed GitHub-only scope; synchronization remains pending. |
+| GitHub | `PRIMARY` | `TavallStudios/tavall-di/docs/progression/TAVALL_DI_PROGRESSION.md` | 2026-10-17 8:05 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; report artifact commit `cbc65ecfd04a8459b2dcc8a4c53cd6f574bec6fd`; hosted boundary in [the 2026-10-18 results report](evidence/2026-10-18-provided-dependencies/results.json). |
+| Notion | `SYNCED` | [Tavall DI — PROGRESSION](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-10-17 8:05 PM PDT | Post-fetch verified the module classification, runtime ownership, current PR stack, 96-test report, and hosted CI blocker. |
 
 ### Update History
 
 | Timestamp | Surface | Event | Location | Previous Location | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-09-27 5:30 PM PDT | GitHub | `CREATED` | `docs/progression/TAVALL_DI_PROGRESSION.md` | — | PR [#17](https://github.com/TavallStudios/tavall-di/pull/17) at the current documentation branch; audited baseline `d8ecc02302522e3acecc586c3f9e918007c82ca3` | Created module-scoped Progression from GitHub source, build, history, and documentation evidence. |
+| 2026-10-17 8:05 PM PDT | GitHub + Notion | `SYNCED` | GitHub Progression ↔ [Notion twin](https://app.notion.com/p/3f838458ddfd814a9175c68d3526c266) | 2026-09-27 5:30 PM PDT | PR #10 code source `525fef5d9f03ba81fd5218368a1d8328776b3827`; report artifact commit `cbc65ecfd04a8459b2dcc8a4c53cd6f574bec6fd`; 96 local tests; hosted request `38dd54fc-f37d-4ea2-953a-c9c6982f34af` rejected before source execution; post-fetch verified | Corrected classification/runtime ownership and PR stack, added immutable local-results report, and recorded separate hosted and staging acceptance boundaries. |
 
 </details>
+
+## 2026-10-12 — Generation-owned access required by Filesystem/NLEW acceptance
+
+The extraction's exact-source architecture check rejected ordinary handler map fields. The canonical DI producer now supplies `GenerationOwnedDependencyAccess`, bound by metadata registration rather than consumer constructors or global lookup. Concrete/interface aliases share one metadata identity; replacement, removal and clear retire retained access. Explicit parent references do not create another owner or child mutation authority. Unbind hooks only invalidate nonblocking local state; owning runtimes perform teardown first.
+
+Local Java 25 `check` and isolated `1.1.0` Maven publication passed; 51 tests passed, including three generation-ownership/parent-reference tests. Exact-source hosted CI, integrated staging and consumer deployment remain separate gates. The branch targets existing staging PR #12 and does not replace active DI work.
+
+## 2026-10-13 — Generation binding main/package acceptance
+
+Implementation PR #20 integrated through staging #12; final main `86de4c75a6b09c5922ef60a2fb06111c5244fda8` passed Tavall CI `df2e3d10-a8a1-48c2-9b62-e71af0082582` (COMPILATION, UNIT_TESTS, QUALITY, ARTIFACT, REQUIRED_ALL). The internally published DI 1.1.0 JAR SHA-256 is `0722f8baccf490d996ff7b6c0868a1d6fd45cb8182c738c32c4ede2a929986da`, matching the accepted immutable CI artifact. DI 1.0.0 remains available.
+
+Generation-owned access binds through the existing DependencyMap metadata lifecycle. Tests cover coherent aliases, suppliers, replacement/removal/clear, failed initialization and borrowed parent metadata. Filesystem/NLEW accepted main checks and Cloud's 902 package-backed tests consume this API; Cloud runtime cutover is independently pending. Source-only publication does not claim every Tavall consumer has adopted the optional new access style.
+
+Successor staging #21 preserves the existing independent feature children; this documentation-only promotion does not replace their branches or scope.
+
+## 2026-10-17 Provided dependency candidate
+
+[PR #10](https://github.com/TavallStudios/tavall-di/pull/10) now uses zero-argument factories, existing typed DependencyAccess and named getters for factory inputs and consumers, including generated expanded access and isolated-map generation ownership. The original fork branch and current platform integration parent #26 are preserved.
+
+Implementation `5bf1ed053e491ccc0ebee5e1827b623c5654bcbb` passes Java 25 clean check/javadoc and JAR boundary validation: 95 tests, zero failures/errors/skips. Coverage includes initialized factory/product prerequisites, injected consumers, invalid declarations, alias identity and replacement, generation retirement, rollback/retry, direct/generated self-access, partial alias repair, retained generations during failed repair, and manual lambda replacement. The JDK HttpClient fixture makes no network request. [Immutable test results](evidence/2026-10-17-provided-dependencies/results.json) bind the implementation separately from the evidence commit.
+
+Fresh native CI request `1578d22a-3792-42b0-be16-acc4ff1e7b4e` failed artifact publication because CONTROL rejected its identity path (`identityFile must be a direct file in the operation credential directory`). Current hosted source acceptance, integration fan-in, package release and deployment remain unaccepted. This is a feature-candidate checkpoint; earlier mainline audit/release entries remain historical. The Notion progression twin records this checkpoint and the same acceptance boundary.
+
+Native phase correction: invocation `1578d22a-3792-42b0-be16-acc4ff1e7b4e` on earlier DI source `abf6397244f62bad9d2e952f7dd693fc1301b672` is verified `COMPLETED`, exit `0`. The compiled caller exports after invocation and removes its operation workspace on export failure. Detailed check results and approved artifact/evidence publication remain unavailable; this does not establish current-head native acceptance.
+
+Review follow-up: metadata now carries its owning map for scoped factory/product injection. Factory-class repair preserves live product identity, and construction-strategy changes roll back if a later provider fails. Generation-owned products retain the existing registration/retirement path.
+
+## 2026-10-18 Generated access provenance correction
+
+PR #10 adds explicit generated-origin metadata to lowered dependency access views. Bootstrap uses the existing `@CompositionBoundary` annotation and the lowerer's exact class identity instead of class-name suffix matching. A regression verifies that an authored `BusinessDependencyAccess.endpoint(): String` remains a business access object and is not expanded as a generated dependency view.
+
+Implementation source `525fef5d9f03ba81fd5218368a1d8328776b3827` passes Java 25 clean check, Javadoc, JAR packaging and boundary validation: 96 tests, zero failures/errors/skips. Javadoc reports 100 existing missing-comment warnings. [The results report](evidence/2026-10-18-provided-dependencies/results.json) binds the JUnit aggregate and local JAR identity to that code source.
+
+The typed hosted CI request `38dd54fc-f37d-4ea2-953a-c9c6982f34af` for PR head `f5352f882625a974c9d33a7848fd3fd183fe02d4` was rejected before source execution with `UNAUTHORIZED: environment repository execution requires CONTROL environment context`. No hosted checks ran; GitHub returned no status contexts or PR workflow runs for that head. This infrastructure boundary is separate from the local test result.
+
+At this checkpoint PR #10 remains open against `staging/platform` under Draft staging root #26. Composed staging validation, main promotion, package release, and deployment remain unaccepted or unrun.
